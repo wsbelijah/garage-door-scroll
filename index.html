@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Garage Door Co. — One Scroll, Driveway to Machine</title>
+<meta name="description" content="A scroll-driven tour of a garage door: start in the driveway, watch the door go up, turn all the way around inside, and end at the machine that does the work.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#16130f;
+    --ink:#f4efe6;
+    --accent:#e4572e;
+    --ink-dim:rgba(244,239,230,.62);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Archivo",system-ui,sans-serif;
+    overflow-x:hidden;
+  }
+  ::selection{background:var(--accent);color:var(--ink)}
+
+  /* ---------- scroll runway ---------- */
+  #runway{height:760vh;position:relative}
+  #stage{
+    position:sticky;top:0;height:100vh;height:100dvh;
+    overflow:hidden;background:#0d0b09;
+  }
+  .layer{position:absolute;inset:0;opacity:0;will-change:transform,opacity}
+  .layer img{
+    width:100%;height:100%;object-fit:cover;display:block;
+    user-select:none;-webkit-user-drag:none;
+  }
+  #l-drive{opacity:1;z-index:1}
+  #l-drive img{transform-origin:31% 60%}
+
+  /* the door, built as four photo slices that roll up and stack */
+  #l-door{z-index:3;display:flex;flex-direction:column}
+  #l-door .strip{
+    flex:0 0 25.7%;overflow:hidden;position:relative;
+    will-change:transform;transform-origin:50% 0;
+  }
+  #l-door .strip + .strip{margin-top:-0.7%}
+  #l-door .strip img{
+    width:100%;height:400%;object-fit:cover;display:block;position:relative;
+    user-select:none;-webkit-user-drag:none;
+  }
+  #l-door .strip.s0 img{top:0}
+  #l-door .strip.s1 img{top:-100%}
+  #l-door .strip.s2 img{top:-200%}
+  #l-door .strip.s3 img{top:-300%}
+  #l-door .strip::after{
+    content:"";position:absolute;left:0;right:0;bottom:0;height:2px;
+    background:rgba(13,11,9,.35);
+  }
+
+  #l-inside{z-index:2}
+  #l-track{z-index:6;display:flex;width:300vw;opacity:0}
+  #l-track .panel{width:100vw;height:100%;flex:0 0 100vw;overflow:hidden}
+  #l-track .panel img{width:100%;height:100%;object-fit:cover}
+  #l-machine{z-index:7}
+  #l-machine img{transform-origin:50% 4%}
+  #l-spring{z-index:8}
+  #l-end{
+    z-index:9;display:flex;flex-direction:column;justify-content:flex-end;
+    padding:0 6vw 9vh;pointer-events:none;
+    background:linear-gradient(to top,rgba(13,11,9,.92) 0%,rgba(13,11,9,.78) 34%,rgba(13,11,9,.38) 62%,rgba(13,11,9,.18) 100%);
+  }
+
+  /* ---------- chrome (fixed UI) ---------- */
+  .brand{
+    position:fixed;top:22px;left:6vw;z-index:20;
+    font-family:"Anton",sans-serif;font-size:19px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--ink);
+    text-shadow:0 1px 14px rgba(0,0,0,.45);
+  }
+  .brand span{color:var(--accent)}
+  .hint{
+    position:fixed;left:6vw;bottom:26px;z-index:20;
+    font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-dim);
+  }
+  .hint b{display:block;color:var(--ink);font-size:13px;margin-bottom:6px;letter-spacing:.28em}
+  .rail{
+    position:fixed;right:26px;top:50%;transform:translateY(-50%);z-index:20;
+    display:flex;flex-direction:column;gap:26px;align-items:flex-end;
+  }
+  .rail .stop{
+    display:flex;align-items:center;gap:10px;
+    font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-dim);
+    transition:color .3s;
+  }
+  .rail .dot{
+    width:8px;height:8px;border-radius:50%;
+    border:1px solid var(--ink-dim);background:transparent;transition:all .3s;flex:0 0 auto;
+  }
+  .rail .stop.on{color:var(--ink)}
+  .rail .stop.on .dot{background:var(--accent);border-color:var(--accent);transform:scale(1.35)}
+
+  /* ---------- captions ---------- */
+  .cap{
+    position:absolute;left:6vw;bottom:11vh;z-index:15;max-width:min(640px,80vw);
+    opacity:0;will-change:transform,opacity;pointer-events:none;
+  }
+  .cap .num{
+    font-family:"Anton",sans-serif;color:var(--accent);
+    font-size:15px;letter-spacing:.3em;display:block;margin-bottom:10px;
+  }
+  .cap h2{
+    font-family:"Anton",sans-serif;font-weight:400;text-transform:uppercase;
+    font-size:clamp(38px,7.2vw,92px);line-height:.98;letter-spacing:.01em;
+    text-shadow:0 2px 26px rgba(0,0,0,.5);
+  }
+  .cap p{
+    margin-top:14px;font-size:clamp(15px,1.6vw,18px);line-height:1.55;
+    color:var(--ink);max-width:44ch;text-shadow:0 1px 12px rgba(0,0,0,.65);
+  }
+
+  /* ---------- end card ---------- */
+  #l-end h2{
+    font-family:"Anton",sans-serif;font-weight:400;text-transform:uppercase;
+    font-size:clamp(34px,5.6vw,72px);line-height:1;max-width:12ch;
+    text-shadow:0 2px 22px rgba(0,0,0,.6);
+  }
+  #l-end h2 span{color:var(--accent)}
+  #l-end p{margin-top:14px;color:var(--ink);font-size:16px;line-height:1.55;max-width:46ch;text-shadow:0 1px 10px rgba(0,0,0,.7)}
+  #l-end .row{display:flex;gap:14px;margin-top:26px;pointer-events:auto;flex-wrap:wrap}
+  .btn{
+    font-family:"Archivo",sans-serif;font-weight:600;font-size:14px;letter-spacing:.12em;
+    text-transform:uppercase;text-decoration:none;cursor:pointer;
+    padding:15px 26px;border-radius:4px;border:1px solid transparent;
+  }
+  .btn.primary{background:var(--accent);color:#fff}
+  .btn.ghost{background:transparent;color:var(--ink);border-color:rgba(244,239,230,.4)}
+  #l-end .fine{margin-top:22px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim)}
+
+  @media (max-width:640px){
+    .rail{right:14px}
+    .rail .stop span{display:none}
+    .cap{bottom:9vh}
+    .brand{font-size:16px}
+  }
+
+  /* ---------- reduced motion / static fallback ---------- */
+  body.static #runway{height:auto}
+  body.static #stage{position:static;height:auto;overflow:visible}
+  body.static .layer{position:static;opacity:1 !important;transform:none !important;height:62vh}
+  body.static #l-door{height:auto}
+  body.static #l-door .strip{flex:none;height:62vh}
+  body.static #l-door .strip img{height:100%;top:0}
+  body.static #l-door .strip.s1,body.static #l-door .strip.s2,body.static #l-door .strip.s3{display:none}
+  body.static #l-track{width:100%;flex-direction:column;height:auto}
+  body.static #l-track .panel{width:100%;height:62vh;flex:none}
+  body.static .cap{position:static;opacity:1 !important;transform:none !important;padding:34px 6vw 6px}
+  body.static #l-end{height:auto;padding:60px 6vw}
+  body.static .rail,body.static .hint{display:none}
+</style>
+</head>
+<body>
+
+<div class="brand">Garage Door <span>Co.</span></div>
+<div class="hint" id="hint"><b>Scroll</b>Driveway to machine, one move</div>
+<nav class="rail" id="rail" aria-hidden="true">
+  <div class="stop on"><span>Driveway</span><i class="dot"></i></div>
+  <div class="stop"><span>Open</span><i class="dot"></i></div>
+  <div class="stop"><span>Inside</span><i class="dot"></i></div>
+  <div class="stop"><span>Machine</span><i class="dot"></i></div>
+</nav>
+
+<main id="runway">
+  <div id="stage">
+
+    <div class="layer" id="l-drive"><img src="img/exterior.jpg" alt="A modern house with two black garage doors, seen from the driveway"></div>
+
+    <div class="layer" id="l-inside"><img src="img/inside-out.jpg" alt="Inside the garage, looking out through the open door to the driveway"></div>
+
+    <div class="layer" id="l-door" aria-hidden="true">
+      <div class="strip s0"><img src="img/garage-door-inside.jpg" alt=""></div>
+      <div class="strip s1"><img src="img/garage-door-inside.jpg" alt=""></div>
+      <div class="strip s2"><img src="img/garage-door-inside.jpg" alt=""></div>
+      <div class="strip s3"><img src="img/garage-door-inside.jpg" alt=""></div>
+    </div>
+
+    <div class="layer" id="l-track">
+      <div class="panel"><img src="img/inside-out.jpg" alt="Looking out of the open garage door"></div>
+      <div class="panel"><img src="img/garage-wide.jpg" alt="Turning inside the garage: bikes on the wall, storage shelves, a car in the second bay"></div>
+      <div class="panel"><img src="img/garage-door-inside.jpg" alt="Completing the turn: the closed door, tools on the wall, the opener overhead"></div>
+    </div>
+
+    <div class="layer" id="l-machine"><img src="img/garage-door-inside.jpg" alt="Zooming in on the garage door opener mounted overhead"></div>
+    <div class="layer" id="l-spring"><img src="img/spring-closeup.jpg" alt="Close-up of the torsion spring and shaft above the door — the machine that lifts it"></div>
+
+    <div class="cap" id="cap-a">
+      <span class="num">01 — Driveway</span>
+      <h2>Start in the driveway.</h2>
+      <p>Every job starts out here, looking at a door that has to work every single day.</p>
+    </div>
+    <div class="cap" id="cap-b">
+      <span class="num">02 — Open</span>
+      <h2>The door goes up.</h2>
+      <p>Panel by panel, on rollers, on a track — until the whole opening is clear.</p>
+    </div>
+    <div class="cap" id="cap-c">
+      <span class="num">03 — Inside</span>
+      <h2>All the way around.</h2>
+      <p>A garage is a room, not a hole in the house. Keep turning — there is more to it than the door.</p>
+    </div>
+    <div class="cap" id="cap-d">
+      <span class="num">04 — Machine</span>
+      <h2>End at the machine.</h2>
+      <p>The opener, the spring, the shaft. That is what actually lifts four hundred pounds, twice a day.</p>
+    </div>
+
+    <div class="layer" id="l-end">
+      <h2>The door is only as good as <span>the machine</span> behind it.</h2>
+      <p>Springs, cables, rollers, openers — when any one of them quits, the door quits. Get the machine checked before it strands a car inside.</p>
+      <div class="row">
+        <a class="btn primary" href="#runway" id="again">Run it again</a>
+        <a class="btn ghost" href="#runway" id="top-link">Back to the driveway</a>
+      </div>
+      <div class="fine">Garage Door Co. — concept build</div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+(function(){
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce) { document.body.classList.add("static"); return; }
+
+  var $ = function(id){ return document.getElementById(id); };
+  var drive=$("l-drive"), door=$("l-door"), inside=$("l-inside"),
+      track=$("l-track"), machine=$("l-machine"), spring=$("l-spring"),
+      end=$("l-end"), hint=$("hint"),
+      strips=door.querySelectorAll(".strip"),
+      caps=[$("cap-a"),$("cap-b"),$("cap-c"),$("cap-d")],
+      stops=document.querySelectorAll("#rail .stop"),
+      runway=$("runway");
+
+  function clamp01(v){ return v<0?0:(v>1?1:v); }
+  function seg(p,a,b){ return clamp01((p-a)/(b-a)); }
+  function ease(t){ return 1-Math.pow(1-t,3); }
+  function fade(p,a,b,c,d){ return seg(p,a,b)*(1-seg(p,c,d)); }
+  function setCap(el,o,ty){ el.style.opacity=o; el.style.transform="translateY("+ty+"px)"; }
+
+  var target=0, cur=-1;
+  function readTarget(){
+    var max = runway.offsetHeight - window.innerHeight;
+    target = max>0 ? clamp01(window.scrollY/max) : 0;
+  }
+  window.addEventListener("scroll", readTarget, {passive:true});
+  window.addEventListener("resize", readTarget);
+  readTarget(); cur = target;
+
+  function render(p){
+    /* 01 DRIVEWAY — push in toward the left door */
+    var s = ease(seg(p,0,0.24));
+    drive.style.opacity = 1-seg(p,0.20,0.30);
+    drive.firstElementChild.style.transform = "scale("+(1+0.52*s)+")";
+
+    /* 02 OPEN — the four panels rise together, connected, and exit
+          overhead; daylight (inside, looking out) revealed underneath */
+    door.style.opacity = fade(p,0.16,0.24,0.44,0.50);
+    for (var i=0;i<strips.length;i++){
+      var e = ease(seg(p, 0.27 + i*0.008, 0.45));
+      strips[i].style.transform = "translateY("+(-402*e)+"%)";
+    }
+    inside.style.opacity = seg(p,0.30,0.42)*(1-seg(p,0.56,0.63));
+    inside.firstElementChild.style.transform = "scale("+(1.13-0.10*seg(p,0.30,0.58))+")";
+
+    /* 03 INSIDE — the 360: three panels, one long turn */
+    var turn = ease(seg(p,0.55,0.80));
+    track.style.opacity = seg(p,0.54,0.60)*(1-seg(p,0.80,0.85));
+    track.style.transform = "translateX("+(-200*turn)+"vw)";
+
+    /* 04 MACHINE — dive at the opener, land on the spring */
+    machine.style.opacity = fade(p,0.79,0.85,0.92,0.97);
+    machine.firstElementChild.style.transform = "scale("+(1+1.9*ease(seg(p,0.79,0.96)))+")";
+    spring.style.opacity = seg(p,0.915,0.965);
+    spring.firstElementChild.style.transform = "scale("+(1.16-0.14*seg(p,0.915,1))+")";
+
+    /* end card */
+    var en = seg(p,0.94,0.982);
+    end.style.opacity = en;
+    end.style.transform = "translateY("+((1-en)*16)+"px)";
+    end.style.pointerEvents = en>0.6 ? "auto" : "none";
+
+    /* captions */
+    setCap(caps[0], 1-seg(p,0.13,0.18), 0);
+    setCap(caps[1], fade(p,0.235,0.28,0.375,0.425), (1-seg(p,0.235,0.28))*18);
+    setCap(caps[2], fade(p,0.565,0.61,0.715,0.765), (1-seg(p,0.565,0.61))*18);
+    setCap(caps[3], fade(p,0.815,0.855,0.905,0.94),(1-seg(p,0.815,0.855))*18);
+
+    hint.style.opacity = 1-seg(p,0.02,0.06);
+
+    var active = p<0.21?0 : p<0.47?1 : p<0.78?2 : 3;
+    for (var j=0;j<stops.length;j++) stops[j].classList.toggle("on", j===active);
+  }
+
+  (function loop(){
+    cur += (target-cur)*0.16;
+    if (Math.abs(target-cur)<0.0012) cur = target;
+    render(cur);
+    requestAnimationFrame(loop);
+  })();
+
+  $("again").addEventListener("click", function(ev){ ev.preventDefault(); window.scrollTo({top:0,behavior:"smooth"}); });
+  $("top-link").addEventListener("click", function(ev){ ev.preventDefault(); window.scrollTo({top:0,behavior:"smooth"}); });
+})();
+</script>
+</body>
+</html>
