@@ -160,26 +160,26 @@
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.08;
+  renderer.toneMappingExposure = 1.05;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.VSMShadowMap;
   document.getElementById("scene").appendChild(renderer.domElement);
 
   var scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(0xc3ced4, 30, 85);
+  scene.fog = new THREE.Fog(0xdccdb2, 28, 80);
 
   /* sky + image-based lighting from a painted equirect canvas */
   (function(){
     var c = document.createElement("canvas"); c.width = 1024; c.height = 512;
     var g = c.getContext("2d");
     var grad = g.createLinearGradient(0, 0, 0, 512);
-    grad.addColorStop(0, "#6f96b8"); grad.addColorStop(0.42, "#a8c2d4");
-    grad.addColorStop(0.52, "#d9dee0"); grad.addColorStop(0.56, "#9a958a");
-    grad.addColorStop(1, "#7c766b");
+    grad.addColorStop(0, "#5d84ad"); grad.addColorStop(0.4, "#9db8cc");
+    grad.addColorStop(0.5, "#e9cf9f"); grad.addColorStop(0.54, "#d9bd8f"); grad.addColorStop(0.56, "#a08b6a");
+    grad.addColorStop(1, "#6f6353");
     g.fillStyle = grad; g.fillRect(0, 0, 1024, 512);
-    var sunG = g.createRadialGradient(700, 205, 8, 700, 205, 190);
-    sunG.addColorStop(0, "rgba(255,246,220,0.95)"); sunG.addColorStop(0.12, "rgba(255,238,200,0.55)");
-    sunG.addColorStop(1, "rgba(255,238,200,0)");
+    var sunG = g.createRadialGradient(700, 228, 8, 700, 228, 240);
+    sunG.addColorStop(0, "rgba(255,240,205,0.98)"); sunG.addColorStop(0.1, "rgba(255,214,150,0.6)");
+    sunG.addColorStop(1, "rgba(255,205,130,0)");
     g.fillStyle = sunG; g.fillRect(0, 0, 1024, 512);
     g.fillStyle = "rgba(255,255,255,0.16)";
     for (var i=0; i<26; i++){
@@ -190,7 +190,7 @@
     skyTex.mapping = THREE.EquirectangularReflectionMapping;
     skyTex.colorSpace = THREE.SRGBColorSpace;
     scene.background = skyTex;
-    if ("backgroundIntensity" in scene) scene.backgroundIntensity = 0.85;
+    if ("backgroundIntensity" in scene) scene.backgroundIntensity = 0.9;
     var pmrem = new THREE.PMREMGenerator(renderer);
     scene.environment = pmrem.fromEquirectangular(skyTex).texture;
   })();
@@ -200,9 +200,9 @@
   if ("xr" in navigator) renderer.xr.enabled = true;
 
   /* ---------- lights ---------- */
-  scene.add(new THREE.HemisphereLight(0xdfeaf2, 0x8a8378, 0.85));
-  var sun = new THREE.DirectionalLight(0xfff1da, 1.7);
-  sun.position.set(6, 14, 9);
+  scene.add(new THREE.HemisphereLight(0xd8e2ea, 0x9a8468, 0.55));
+  var sun = new THREE.DirectionalLight(0xffc98a, 2.4);
+  sun.position.set(-13, 7.5, 12);
   sun.castShadow = true;
   sun.shadow.mapSize.set(1024, 1024);
   sun.shadow.camera.left = -14; sun.shadow.camera.right = 14;
@@ -210,7 +210,7 @@
   sun.shadow.camera.far = 45; sun.shadow.bias = -0.0002;
   sun.shadow.radius = 7; sun.shadow.blurSamples = 12;
   scene.add(sun); scene.add(sun.target); sun.target.position.set(0, 0, -2);
-  var fill = new THREE.DirectionalLight(0xdfe8f0, 0.38);
+  var fill = new THREE.DirectionalLight(0xcfdce8, 0.25);
   fill.position.set(-4, 6, 14);
   scene.add(fill);
   function roomLight(x, z){
@@ -309,15 +309,38 @@
     scene.add(m);
   }
 
+  /* real scanned PBR sets (Poly Haven, CC0): color + normal + roughness */
+  var manager = new THREE.LoadingManager();
+  var texLoader = new THREE.TextureLoader(manager);
+  function pbr(base, repX, repY, withRough){
+    function t(path, srgb){
+      var tx = texLoader.load(path);
+      tx.wrapS = tx.wrapT = THREE.RepeatWrapping; tx.repeat.set(repX, repY);
+      if (srgb) tx.colorSpace = THREE.SRGBColorSpace;
+      tx.anisotropy = 8;
+      return tx;
+    }
+    var out = { map: t("tex/" + base + ".jpg", true), normalMap: t("tex/" + base + "_n.jpg", false) };
+    if (withRough) out.roughnessMap = t("tex/" + base + "_r.jpg", false);
+    return out;
+  }
+  function pbrMat(base, repX, repY, withRough, extra){
+    var opts = pbr(base, repX, repY, withRough);
+    opts.roughness = 1; opts.normalScale = new THREE.Vector2(0.75, 0.75);
+    if (extra) for (var k in extra) opts[k] = extra[k];
+    return new THREE.MeshStandardMaterial(opts);
+  }
+
   /* ---------- materials ---------- */
   var M = {
-    stucco:  new THREE.MeshStandardMaterial({ map:stuccoTex, bumpMap:stuccoBump, bumpScale:0.6, roughness:0.95, envMapIntensity:0.5 }),
+    stucco:  pbrMat("stucco", 2, 1, true, { envMapIntensity:0.5 }),
     trim:    new THREE.MeshStandardMaterial({ color:0x2e2c2a, roughness:0.75, envMapIntensity:0.5 }),
     doorBlk: new THREE.MeshPhysicalMaterial({ color:0x1d1f22, roughness:0.38, metalness:0.25, clearcoat:0.65, clearcoatRoughness:0.28, envMapIntensity:0.9 }),
     doorIn:  new THREE.MeshStandardMaterial({ color:0x26282c, roughness:0.6, metalness:0.15, envMapIntensity:0.5 }),
     glass:   new THREE.MeshStandardMaterial({ color:0x9fb4c6, roughness:0.1, metalness:0.85, emissive:0x5d748e, emissiveIntensity:0.15, envMapIntensity:1.3 }),
-    wood:    new THREE.MeshStandardMaterial({ map:woodTex, bumpMap:woodTex, bumpScale:0.3, roughness:0.8, envMapIntensity:0.45 }),
-    drywall: new THREE.MeshStandardMaterial({ map:dryTex, roughness:1, envMapIntensity:0.4 }),
+    wood:    pbrMat("wood", 1, 1, true, { envMapIntensity:0.45 }),
+    woodBeam:pbrMat("wood", 5, 1, true, { envMapIntensity:0.45 }),
+    drywall: pbrMat("plaster", 3, 1, true, { envMapIntensity:0.4 }),
     steel:   new THREE.MeshStandardMaterial({ color:0x9aa0a4, roughness:0.32, metalness:0.75, envMapIntensity:0.9 }),
     darkSteel:new THREE.MeshStandardMaterial({ color:0x3c3f42, roughness:0.42, metalness:0.65, envMapIntensity:0.7 }),
     shelf:   new THREE.MeshStandardMaterial({ color:0x6f7478, roughness:0.42, metalness:0.7, envMapIntensity:0.7 }),
@@ -330,8 +353,10 @@
     redDark: new THREE.MeshStandardMaterial({ color:0x6e1a14, roughness:0.6, envMapIntensity:0.5 }),
     lamp:    new THREE.MeshStandardMaterial({ color:0xffca7a, emissive:0xffb85c, emissiveIntensity:1.6 }),
     led:     new THREE.MeshStandardMaterial({ color:0xffffff, emissive:0xfff6e0, emissiveIntensity:1.2 }),
-    lawn:    new THREE.MeshStandardMaterial({ color:0x6d7a52, roughness:1, envMapIntensity:0.35 }),
-    asphalt: new THREE.MeshStandardMaterial({ color:0x4a4a4c, roughness:1, envMapIntensity:0.35 }),
+    lawn:    pbrMat("grass", 3, 3, false, { envMapIntensity:0.35 }),
+    ground:  pbrMat("grass", 26, 26, false, { envMapIntensity:0.3, color:0xa9b096 }),
+    asphalt: pbrMat("asphalt", 9, 1, false, { envMapIntensity:0.35 }),
+    bush:    new THREE.MeshStandardMaterial({ color:0x51663f, roughness:1, envMapIntensity:0.35, flatShading:true }),
     hose:    new THREE.MeshStandardMaterial({ color:0x3f5a3a, roughness:0.8, envMapIntensity:0.4 })
   };
 
@@ -352,7 +377,7 @@
   }
 
   /* ---------- outdoors ---------- */
-  var ground = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), new THREE.MeshStandardMaterial({ color:0x7d7f72, roughness:1 }));
+  var ground = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), M.ground);
   ground.rotation.x = -Math.PI/2; ground.position.set(0, -0.01, 8); ground.receiveShadow = true;
   scene.add(ground);
 
@@ -361,7 +386,7 @@
   scene.add(street);
   for (var dash=0; dash<9; dash++) box(2.2, 0.012, 0.18, M.drywall, -32 + dash*8, 0.006, 19.5, scene);
 
-  var slab = new THREE.Mesh(new THREE.PlaneGeometry(9.5, 11), new THREE.MeshStandardMaterial({ map:concreteDrive, bumpMap:concreteBump, bumpScale:0.4, roughness:1, envMapIntensity:0.4 }));
+  var slab = new THREE.Mesh(new THREE.PlaneGeometry(9.5, 11), pbrMat("concrete", 5, 7, true, { envMapIntensity:0.4 }));
   slab.rotation.x = -Math.PI/2; slab.position.set(-0.6, 0.01, 5.5); slab.receiveShadow = true;
   scene.add(slab);
   var lawnL = new THREE.Mesh(new THREE.PlaneGeometry(7, 11), M.lawn);
@@ -379,15 +404,41 @@
     box(w*0.34, 2.1, 0.1, M.trim, -w*0.18, 1.05, -3.02, g);
     g.position.set(x, 0, 27);
     scene.add(g);
+    contactShadow(w + 2, 8.5, x, 0.002, 27);
   }
   neighbor(-14, 9, 0xcfc8bb); neighbor(0, 10, 0xb9bfc4); neighbor(14, 9, 0xd8cfc0);
 
-  /* bushes flanking the facade */
+  /* bushes flanking the facade — vertex-noise displaced so they read organic */
+  function blobGeo(r, detail, amt){
+    var geo = new THREE.IcosahedronGeometry(r, detail);
+    var pos = geo.attributes.position, v = new THREE.Vector3();
+    for (var i=0; i<pos.count; i++){
+      v.fromBufferAttribute(pos, i);
+      var h = Math.sin(v.x*12.9 + v.y*78.2 + v.z*37.7)*43758.5453;
+      h = h - Math.floor(h);
+      var h2 = Math.sin(v.x*4.1 + v.y*9.3 + v.z*6.7)*24634.63;
+      h2 = h2 - Math.floor(h2);
+      var d = 1 + (h - 0.5)*amt + (h2 - 0.5)*amt*0.9;
+      pos.setXYZ(i, v.x*d, v.y*d, v.z*d);
+    }
+    geo.computeVertexNormals();
+    return geo;
+  }
   function bush(x, z, s){
-    var b = new THREE.Mesh(new THREE.IcosahedronGeometry(s, 1), new THREE.MeshStandardMaterial({ color:0x51663f, roughness:1 }));
+    var b = new THREE.Mesh(blobGeo(s, 2, 0.3), M.bush);
     b.position.set(x, s*0.72, z); b.scale.y = 0.78; b.castShadow = true;
     scene.add(b);
   }
+  function tree(x, z, s){
+    var g = new THREE.Group();
+    cyl(0.09*s, 0.14*s, 1.7*s, M.card, 0, 0.85*s, 0, g);
+    var blob = new THREE.Mesh(blobGeo(1.25*s, 2, 0.34), M.bush);
+    blob.position.y = 2.3*s; blob.castShadow = true;
+    g.add(blob);
+    g.position.set(x, 0, z);
+    scene.add(g);
+  }
+  tree(-19, 25, 1.5); tree(-8, 26, 1.9); tree(8.5, 25.5, 1.6); tree(19, 26, 2.0); tree(0.5, 27, 1.3);
   bush(-5.6, 0.9, 0.55); bush(5.6, 0.9, 0.55); bush(-5.7, 2.6, 0.4); bush(5.7, 2.6, 0.42);
   contactShadow(1.5, 1.5, -5.6, 0.02, 0.9); contactShadow(1.5, 1.5, 5.6, 0.02, 0.9);
   contactShadow(1.1, 1.1, -5.7, 0.02, 2.6); contactShadow(1.1, 1.1, 5.7, 0.02, 2.6);
@@ -434,6 +485,10 @@
     var body = box(DOOR_W, PANEL_H-0.015, 0.05, M.doorBlk, 0, 0, 0, pg, true);
     box(4.2, 0.15, 0.012, M.glass, 0, 0.13, 0.032, pg);            /* glass strip, outside */
     box(4.35, 0.4, 0.012, M.doorIn, 0, 0, -0.032, pg);            /* panel molding, inside */
+    box(4.4, 0.09, 0.02, M.darkSteel, 0, 0.16, -0.045, pg);       /* reinforcement struts, inside */
+    box(4.4, 0.09, 0.02, M.darkSteel, 0, -0.16, -0.045, pg);
+    box(0.09, 0.12, 0.02, M.steel, -1.6, 0.27, -0.045, pg);       /* hinges */
+    box(0.09, 0.12, 0.02, M.steel, 1.6, 0.27, -0.045, pg);
     box(0.05, 0.05, 0.06, M.steel, 2.1, -0.1, 0.05, pg);          /* handle */
     pg.userData.baseA = PANEL_H/2 + pi*PANEL_H;
     doorGroup.add(pg); panels.push(pg);
@@ -459,15 +514,15 @@
   layoutDoor(0);
 
   /* ---------- garage interior (modeled room) ---------- */
-  var floor = new THREE.Mesh(new THREE.PlaneGeometry(10, 9), new THREE.MeshStandardMaterial({ map:concreteFloor, bumpMap:concreteBump, bumpScale:0.4, roughness:1, envMapIntensity:0.4 }));
+  var floor = new THREE.Mesh(new THREE.PlaneGeometry(10, 9), pbrMat("concrete", 6, 6, true, { envMapIntensity:0.4 }));
   floor.rotation.x = -Math.PI/2; floor.position.set(0, 0.005, -4.5); floor.receiveShadow = true;
   scene.add(floor);
 
   var ceil = new THREE.Mesh(new THREE.PlaneGeometry(10, 9), new THREE.MeshStandardMaterial({ map:ceilTex, roughness:1, envMapIntensity:0.35 }));
   ceil.rotation.x = Math.PI/2; ceil.position.set(0, 3.3, -4.5);
   scene.add(ceil);
-  box(10, 0.18, 0.24, M.wood, 0, 3.2, -2.5, scene);
-  box(10, 0.18, 0.24, M.wood, 0, 3.2, -6.2, scene);
+  box(10, 0.18, 0.24, M.woodBeam, 0, 3.2, -2.5, scene);
+  box(10, 0.18, 0.24, M.woodBeam, 0, 3.2, -6.2, scene);
   [-1.6, 1.6].forEach(function(x){ box(1.3, 0.03, 0.35, M.led, x, 3.28, -4.5, scene); });
 
   function roomWall(w, h, x, y, z, ry){
@@ -483,6 +538,10 @@
   box(10, 0.09, 0.02, M.trim, 0, 0.045, -8.98, scene);
   box(0.02, 0.09, 9, M.trim, -4.98, 0.045, -4.5, scene);
   box(0.02, 0.09, 9, M.trim, 4.98, 0.045, -4.5, scene);
+  /* soft AO where walls meet the floor */
+  contactShadow(10, 0.8, 0, 0.012, -8.68);
+  contactShadow(0.8, 9, -4.68, 0.012, -4.5);
+  contactShadow(0.8, 9, 4.68, 0.012, -4.5);
 
   /* door tracks */
   [-3.48, 1.08].forEach(function(x){
@@ -821,8 +880,14 @@
   }
   animate();
 
-  loadFill.style.width = "100%";
-  setTimeout(function(){ document.getElementById("loader").classList.add("done"); }, 350);
+  manager.onProgress = function(u, loaded, total){
+    loadFill.style.width = Math.round(loaded/total*100) + "%";
+  };
+  manager.onLoad = function(){
+    loadFill.style.width = "100%";
+    document.getElementById("loader").classList.add("done");
+  };
+  setTimeout(function(){ document.getElementById("loader").classList.add("done"); }, 6000);
 })();
 </script>
 </body>
