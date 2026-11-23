@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Garage Door Co. — The Virtual Garage</title>
-<meta name="description" content="Step into a virtual garage. Open the door, walk in, look around in 360, and meet the machine that lifts it.">
+<title>Garage Door Co. — Repair, Springs, Openers & New Doors</title>
+<meta name="description" content="Walk through a virtual garage and see every service on the actual parts: spring replacement, opener repair, off-track and cable repair, tune-ups, and new door installation. 24/7 emergency service.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -95,10 +95,108 @@
   }
   #nogl a{color:var(--accent)}
 
+  /* ---------- sales layer ---------- */
+  .tool.call{background:var(--accent);border-color:var(--accent);color:#fff}
+  .card{max-height:min(58vh,540px);overflow-y:auto}
+  .cardx{
+    position:absolute;top:8px;right:10px;background:none;border:none;color:var(--ink-dim);
+    font-size:20px;line-height:1;cursor:pointer;padding:4px;
+  }
+  .card .eyebrow{font-size:10px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:var(--accent);margin-bottom:7px}
+  .card .signs{font-size:12.5px;line-height:1.5;color:var(--ink);margin:9px 0 4px}
+  .card .signs b{display:block;font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:var(--accent);margin-bottom:3px}
+  .card ul{list-style:none;margin:6px 0 2px}
+  .card ul li{font-size:13px;line-height:1.5;color:var(--ink-dim);padding-left:15px;position:relative;margin-bottom:3px}
+  .card ul li::before{content:"";position:absolute;left:0;top:8px;width:6px;height:2px;background:var(--accent)}
+  .cta-row{display:flex;gap:8px;margin-top:13px;flex-wrap:wrap}
+  .cta{
+    flex:1;text-align:center;font:700 11.5px 'Archivo',sans-serif;letter-spacing:.16em;text-transform:uppercase;
+    padding:12px 10px;border-radius:3px;cursor:pointer;border:1px solid var(--accent);
+    background:var(--accent);color:#fff;text-decoration:none;white-space:nowrap;
+  }
+  .cta.ghosty{background:transparent;color:var(--ink);border-color:var(--line)}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
+  .chip{
+    font:600 11.5px 'Archivo',sans-serif;letter-spacing:.06em;color:var(--ink);
+    background:rgba(244,239,230,.08);border:1px solid var(--line);border-radius:20px;
+    padding:8px 13px;cursor:pointer;
+  }
+  .chip:hover{border-color:var(--accent)}
+  .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .card .backlink{background:none;border:none;color:var(--accent);font:600 11px 'Archivo',sans-serif;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;padding:0;margin-bottom:9px}
+  .emerg{
+    position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:20;
+    display:flex;align-items:center;gap:12px;background:rgba(18,15,12,.6);border:1px solid var(--line);
+    border-radius:30px;padding:8px 8px 8px 18px;backdrop-filter:blur(6px);white-space:nowrap;
+  }
+  .emerg span{font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim)}
+  .emerg span b{color:var(--ink)}
+  .emerg a{
+    font:700 11px 'Archivo',sans-serif;letter-spacing:.14em;text-transform:uppercase;
+    background:var(--accent);color:#fff;text-decoration:none;padding:8px 14px;border-radius:20px;
+  }
+  .scrim{position:fixed;inset:0;background:rgba(8,6,4,.55);z-index:29;opacity:0;pointer-events:none;transition:opacity .3s}
+  .scrim.on{opacity:1;pointer-events:auto}
+  .sheet{
+    position:fixed;top:0;right:0;height:100%;width:min(400px,94vw);z-index:30;
+    background:rgba(16,13,10,.96);border-left:1px solid var(--line);backdrop-filter:blur(12px);
+    transform:translateX(102%);transition:transform .38s ease;display:flex;flex-direction:column;
+  }
+  .sheet.on{transform:none}
+  .sheet header{display:flex;align-items:center;justify-content:space-between;padding:20px 20px 12px}
+  .sheet header h2{font-family:'Anton',sans-serif;font-weight:400;font-size:21px;letter-spacing:.1em}
+  .sheet header h2 b{color:var(--accent);font-weight:400}
+  .sheet .x{background:none;border:none;color:var(--ink-dim);font-size:24px;cursor:pointer;line-height:1}
+  .sheet .list{overflow-y:auto;padding:2px 20px 16px;flex:1}
+  .sheet h4{font-size:10.5px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:var(--accent);margin:18px 0 8px}
+  .svc-row{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;
+    background:rgba(244,239,230,.05);border:1px solid var(--line);border-radius:5px;
+    padding:13px 14px;margin-bottom:8px;cursor:pointer;color:var(--ink);
+  }
+  .svc-row:hover{border-color:var(--accent)}
+  .svc-row .nm{font:600 14.5px 'Archivo',sans-serif;display:block}
+  .svc-row .ds{font-size:12px;color:var(--ink-dim);display:block;margin-top:2px;line-height:1.4}
+  .svc-row .arw{color:var(--accent);font-size:17px}
+  .sheet footer{padding:16px 20px 22px;border-top:1px solid var(--line)}
+  .sheet footer p{font-size:12.5px;line-height:1.6;color:var(--ink-dim);margin-bottom:12px}
+  .sheet footer .cta{display:block}
+  .modal{
+    position:fixed;left:50%;top:50%;transform:translate(-50%,-46%);z-index:31;width:min(430px,94vw);
+    background:rgba(16,13,10,.97);border:1px solid var(--line);border-radius:8px;padding:22px;
+    opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;max-height:88vh;overflow-y:auto;
+  }
+  .modal.on{opacity:1;pointer-events:auto;transform:translate(-50%,-50%)}
+  .modal h2{font-family:'Anton',sans-serif;font-weight:400;font-size:21px;letter-spacing:.1em;margin-bottom:4px}
+  .modal h2 b{color:var(--accent);font-weight:400}
+  .modal .sub{font-size:12.5px;color:var(--ink-dim);line-height:1.5;margin-bottom:14px}
+  .modal label{display:block;font-size:10.5px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-dim);margin:12px 0 6px}
+  .modal input,.modal select,.modal textarea{
+    width:100%;background:rgba(244,239,230,.06);border:1px solid var(--line);border-radius:4px;
+    color:var(--ink);font:500 14px 'Archivo',sans-serif;padding:11px 12px;
+  }
+  .modal select option{color:#16130f}
+  .modal textarea{resize:vertical;min-height:64px}
+  .times{display:flex;gap:7px;flex-wrap:wrap}
+  .times label{
+    margin:0;letter-spacing:.04em;text-transform:none;font-size:12.5px;font-weight:600;color:var(--ink);
+    border:1px solid var(--line);border-radius:20px;padding:8px 13px;cursor:pointer;
+  }
+  .times input{display:none}
+  .times label:has(input:checked){background:var(--accent);border-color:var(--accent);color:#fff}
+  .modal .note{font-size:11.5px;color:var(--ink-dim);line-height:1.55;margin-top:12px}
+  .modal .x{position:absolute;top:10px;right:14px;background:none;border:none;color:var(--ink-dim);font-size:24px;cursor:pointer}
+
+  @media (max-width:1100px){ .emerg{display:none} }
   @media (max-width:640px){
-    .brand{font-size:13px;left:16px;top:16px;white-space:nowrap}
+    .tool.call .num{display:none}
+    .card{bottom:132px}
+  }
+    .brand{font-size:11px;left:12px;top:15px;white-space:nowrap}
     .brand small{display:none}
-    .tools{right:16px;top:16px}
+    .tools{right:12px;top:12px;gap:6px}
+    .tool{padding:8px 9px;font-size:10px;letter-spacing:.12em}
+    #motionBtn{display:none}
     .dock{bottom:calc(16px + env(safe-area-inset-bottom))}
     .btn{padding:15px 20px;font-size:12px}
     .hint{display:none}
@@ -113,8 +211,15 @@
 <div class="brand">GARAGE DOOR <b>CO.</b><small>THE VIRTUAL GARAGE</small></div>
 
 <div class="tools">
+  <button class="tool" id="svcBtn">Services</button>
+  <a class="tool call" href="tel:+15552103667">Call <span class="num">(555) 210-3667</span></a>
   <button class="tool" id="motionBtn" aria-pressed="false">Motion look</button>
   <button class="tool" id="vrBtn" hidden>Enter VR</button>
+</div>
+
+<div class="emerg">
+  <span><b>24/7 emergency</b> — broken spring? door stuck?</span>
+  <a href="tel:+15552103667">Call now</a>
 </div>
 
 <div id="loader">
@@ -124,8 +229,46 @@
 </div>
 
 <div class="card" id="infoCard">
-  <h3>THE <b>MACHINE</b></h3>
-  <p>That spring is the muscle — it is wound tight enough to lift the whole door by itself. The opener motor just guides it. When the spring snaps, the door is dead weight: that is a replace-it call, not a DIY.</p>
+  <button class="cardx" id="cardClose" aria-label="Close">&times;</button>
+  <div id="cardBody"></div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+
+<aside class="sheet" id="svcSheet" aria-label="Services">
+  <header><h2>OUR <b>SERVICES</b></h2><button class="x" id="svcClose" aria-label="Close">&times;</button></header>
+  <div class="list" id="svcList"></div>
+  <footer>
+    <p><b style="color:var(--ink)">Open 24/7 for emergencies.</b><br>
+    Serving El Monte, San Gabriel, Rosemead, Temple City, Baldwin Park, Arcadia, Covina &amp; the San Gabriel Valley.</p>
+    <a class="cta" href="tel:+15552103667">Call (555) 210-3667</a>
+  </footer>
+</aside>
+
+<div class="modal" id="bookModal" role="dialog" aria-label="Book a service">
+  <button class="x" id="bookClose" aria-label="Close">&times;</button>
+  <h2>BOOK A <b>SERVICE</b></h2>
+  <p class="sub">Tell us what the door is doing. We confirm every booking by phone before a truck rolls.</p>
+  <label for="bkName">Your name</label>
+  <input id="bkName" type="text" autocomplete="name" placeholder="Full name">
+  <label for="bkPhone">Mobile number</label>
+  <input id="bkPhone" type="tel" autocomplete="tel" placeholder="(555) 000-0000">
+  <label for="bkSvc">Service needed</label>
+  <select id="bkSvc"></select>
+  <label>When works for you?</label>
+  <div class="times" id="bkTimes">
+    <label><input type="radio" name="bktime" value="ASAP — emergency" checked>ASAP</label>
+    <label><input type="radio" name="bktime" value="Today">Today</label>
+    <label><input type="radio" name="bktime" value="Tomorrow morning">Tomorrow AM</label>
+    <label><input type="radio" name="bktime" value="Tomorrow afternoon">Tomorrow PM</label>
+  </div>
+  <label for="bkNotes">What is the door doing?</label>
+  <textarea id="bkNotes" placeholder="e.g. Heard a loud bang, now the door will not lift"></textarea>
+  <div class="cta-row">
+    <a class="cta" id="bkCall" href="tel:+15552103667">Call to book</a>
+    <button class="cta ghosty" id="bkCopy">Copy my request</button>
+  </div>
+  <p class="note">This form does not send or store anything online — it prepares your request so you can call it in, or paste it into a text or email. Nothing is booked until we confirm with you by phone.</p>
 </div>
 
 <div class="dock">
@@ -365,6 +508,8 @@
     stucco:  pbrMat("stucco", 2, 1, true, { envMapIntensity:0.5 }),
     trim:    new THREE.MeshStandardMaterial({ color:0x2e2c2a, roughness:0.75, envMapIntensity:0.5 }),
     doorBlk: new THREE.MeshPhysicalMaterial({ color:0x1d1f22, roughness:0.38, metalness:0.25, clearcoat:0.65, clearcoatRoughness:0.28, envMapIntensity:0.9 }),
+    doorWhite: new THREE.MeshPhysicalMaterial({ color:0xe9e6df, roughness:0.42, metalness:0.1, clearcoat:0.5, clearcoatRoughness:0.3, envMapIntensity:0.8 }),
+    doorWood: pbrMat("wood", 2, 1, true, { color:0xa9743f, envMapIntensity:0.5 }),
     doorIn:  new THREE.MeshStandardMaterial({ color:0x26282c, roughness:0.6, metalness:0.15, envMapIntensity:0.5 }),
     glass:   new THREE.MeshStandardMaterial({ color:0x9fb4c6, roughness:0.1, metalness:0.85, emissive:0x5d748e, emissiveIntensity:0.15, envMapIntensity:1.3 }),
     wood:    pbrMat("wood", 1, 1, true, { envMapIntensity:0.45 }),
@@ -566,10 +711,28 @@
   var DOOR_W = 4.8, PANEL_H = 0.6125, DOOR_TRAVEL = 2.85;
   var doorGroup = new THREE.Group(); scene.add(doorGroup);
   var panels = [];
+  var panelBodies = [], panelGlass = [], frameMeshes = [], raisedGroups = [], strapGroups = [];
   for (var pi=0; pi<4; pi++){
     var pg = new THREE.Group();
     var body = box(DOOR_W, PANEL_H-0.015, 0.05, M.doorBlk, 0, 0, 0, pg, true);
-    box(4.2, 0.15, 0.012, M.glass, 0, 0.13, 0.032, pg);            /* glass strip, outside */
+    panelBodies.push(body);
+    panelGlass.push(box(4.2, 0.15, 0.012, M.glass, 0, 0.13, 0.032, pg));  /* glass strip, outside */
+    /* raised-panel frames (traditional style) */
+    var rg = new THREE.Group();
+    [-1.08, 1.08].forEach(function(fx){
+      var fr = [
+        box(1.72, 0.035, 0.014, M.doorBlk, fx, 0.17, 0.033, rg),
+        box(1.72, 0.035, 0.014, M.doorBlk, fx, -0.17, 0.033, rg),
+        box(0.035, 0.31, 0.014, M.doorBlk, fx - 0.845, 0, 0.033, rg),
+        box(0.035, 0.31, 0.014, M.doorBlk, fx + 0.845, 0, 0.033, rg)
+      ];
+      fr.forEach(function(m){ frameMeshes.push(m); });
+    });
+    rg.visible = false; pg.add(rg); raisedGroups.push(rg);
+    /* carriage straps (carriage style) */
+    var sg = new THREE.Group();
+    [-0.19, 0, 0.19].forEach(function(sy){ box(4.5, 0.055, 0.014, M.darkSteel, 0, sy, 0.033, sg); });
+    sg.visible = false; pg.add(sg); strapGroups.push(sg);
     box(4.35, 0.4, 0.012, M.doorIn, 0, 0, -0.032, pg);            /* panel molding, inside */
     box(4.4, 0.09, 0.02, M.darkSteel, 0, 0.16, -0.045, pg);       /* reinforcement struts, inside */
     box(4.4, 0.09, 0.02, M.darkSteel, 0, -0.16, -0.045, pg);
@@ -805,6 +968,29 @@
   hotspot.scale.set(0.42, 0.42, 1);
   scene.add(hotspot);
 
+  /* pulsing glow marker that points at the part a service is about */
+  var marker = new THREE.Sprite(new THREE.SpriteMaterial({ map:glowTex, color:0xff7a3c, transparent:true, depthTest:true, opacity:0.95 }));
+  marker.scale.set(0.9, 0.9, 1);
+  marker.visible = false;
+  scene.add(marker);
+
+  /* door style switcher — the product, shown on the house itself */
+  function setStyle(name){
+    var conf = {
+      modern:      { mat:M.doorBlk,   glass:true,  raised:false, strap:false },
+      traditional: { mat:M.doorWhite, glass:false, raised:true,  strap:false },
+      carriage:    { mat:M.doorWood,  glass:false, raised:false, strap:true  }
+    }[name] || {};
+    panelBodies.forEach(function(b){ b.material = conf.mat; });
+    frameMeshes.forEach(function(b){ b.material = conf.mat; });
+    panelGlass.forEach(function(g){ g.visible = conf.glass; });
+    raisedGroups.forEach(function(g){ g.visible = conf.raised; });
+    strapGroups.forEach(function(g){ g.visible = conf.strap; });
+    document.querySelectorAll(".chip[data-style]").forEach(function(c){
+      c.classList.toggle("on", c.getAttribute("data-style") === name);
+    });
+  }
+
   /* ---------- views, state, UI ---------- */
   var VIEWS = {
     driveway: { pos:new THREE.Vector3(0.4, 1.6, 8.6),  look:new THREE.Vector3(-0.5, 1.35, -2) },
@@ -819,17 +1005,239 @@
   var backBtn = document.getElementById("backBtn");
   var card = document.getElementById("infoCard");
   var WHERE = {
-    driveway: "<b>Driveway</b> — drag to look around",
-    inside:   "<b>Inside</b> — full 360. Tap the orange ring at the spring",
-    machine:  "<b>The machine</b> — spring, shaft, opener"
+    driveway: "<b>Driveway</b> — new doors & curb appeal",
+    inside:   "<b>Inside</b> — repairs & tune-ups. Tap the orange ring at the spring",
+    machine:  "<b>The machine</b> — springs & openers"
   };
+
+  /* ---------- the sales layer: every stop sells its services ---------- */
+  var PHONE_TEL = "tel:+15552103667";
+  var STOP_LABEL = { driveway:"At the driveway", inside:"Inside the garage", machine:"Up at the machine" };
+  var SERVICES = [
+    { id:"install", stop:"driveway", name:"New Door Installation",
+      tag:"See styles on the house itself",
+      signs:"Your door is 15+ years old, rusting, dented all over — or the house front is getting redone anyway.",
+      bullets:["Steel, aluminum, wood & insulated doors, measured to your opening","Old door removed and hauled away","New springs, tracks & hardware included","Installed and balanced in one visit"],
+      marker:[-1.2, 1.35, 0.4] },
+    { id:"panels", stop:"driveway", name:"Panel Replacement",
+      tag:"One bent section does not mean a new door",
+      signs:"A bumper, a basketball or a ladder took out one section of an otherwise good door.",
+      bullets:["Color- and grain-matched section swap","Hinges and rollers checked while it is open","Far cheaper than a full door when the rest is sound"],
+      marker:[-0.5, 0.65, 0.4] },
+    { id:"offtrack", stop:"inside", name:"Off-Track & Track Repair",
+      tag:"Crooked door? Stop using it",
+      signs:"The door sits at an angle, a roller has popped out of the track, or it binds and scrapes on the way up.",
+      bullets:["Door re-tracked and realigned safely","Bent track straightened or replaced","Full open-close cycle test before we leave"],
+      marker:[-3.48, 1.7, -0.35] },
+    { id:"cables", stop:"inside", name:"Cable Replacement",
+      tag:"The ropes that actually hold the door",
+      signs:"The door hangs crooked with one side low, or you can see a frayed, rusty or loose cable by the track.",
+      bullets:["Lift cables replaced as a matched pair","Drums reseated and leveled","Springs inspected on the same visit — a snapped cable usually means a spring is next"],
+      marker:[-3.35, 2.6, -0.25] },
+    { id:"rollers", stop:"inside", name:"Roller Replacement",
+      tag:"For doors that rattle the house",
+      signs:"Grinding, rattling or shuddering every time the door runs. Worn steel rollers are the usual cause.",
+      bullets:["Sealed nylon rollers — dramatically quieter than steel","Replaced as a full set, never one at a time","Easier on the tracks and the opener"],
+      marker:[-3.48, 2.45, -0.3] },
+    { id:"seal", stop:"inside", name:"Weather Seal Replacement",
+      tag:"Light under the door means gaps",
+      signs:"Daylight, drafts, dust or critters coming in under or around the door.",
+      bullets:["New bottom seal and perimeter trim","Seals out water, dust and pests","Helps an insulated door actually insulate"],
+      marker:[-1.2, 0.2, 0.35] },
+    { id:"tuneup", stop:"inside", name:"Tune-Up & Safety Inspection",
+      tag:"The yearly once-over that prevents breakdowns",
+      signs:"Nothing is broken — yet. The door is noisy, the opener strains, or it has just been a few years.",
+      bullets:["25-point inspection of every moving part","Balance test and spring-tension check","Lubrication and hardware torque","Safety-eye alignment and auto-reverse test"],
+      marker:[-0.8, 1.5, -4.4] },
+    { id:"springs", stop:"machine", name:"Spring Replacement",
+      tag:"The most common — and most dangerous — repair",
+      signs:"A loud bang like a firecracker, a visible gap in the coil above the door, and a door that suddenly will not lift.",
+      bullets:["That spring does the lifting — the opener only guides it","Matched pair, sized to your door's weight","Tension set and balance tested before we leave","Never a DIY: a wound spring stores serious energy"],
+      marker:[-1.2, 2.68, -0.15] },
+    { id:"opener", stop:"machine", name:"Opener Repair & New Openers",
+      tag:"All major brands, smart options",
+      signs:"The motor hums but nothing moves, the door reverses for no reason, or the remote and keypad have quit.",
+      bullets:["LiftMaster, Chamberlain, Genie & Craftsman repaired","Belt, chain and wall-mount units installed","Smart Wi-Fi openers with battery backup","Sensors aligned; remotes & keypads programmed on the spot"],
+      marker:[-1.2, 2.95, -3.05] }
+  ];
+  function svcById(id){ for (var i=0; i<SERVICES.length; i++) if (SERVICES[i].id === id) return SERVICES[i]; return null; }
+  function svcsAt(stop){ return SERVICES.filter(function(s){ return s.stop === stop; }); }
+
+  var cardBody = document.getElementById("cardBody");
+  var cardDismissedFor = "__none__", pendingService = null;
+
+  /* while the install card is open, the door cycles its styles on the house
+     until the visitor picks one — the catalog, animated */
+  var styleTimer = null;
+  function stopStyleCycle(){ if (styleTimer){ clearInterval(styleTimer); styleTimer = null; } }
+  function startStyleCycle(){
+    stopStyleCycle();
+    var order = ["modern", "traditional", "carriage"], i = 0;
+    styleTimer = setInterval(function(){
+      i = (i + 1) % order.length;
+      setStyle(order[i]);
+    }, 2800);
+  }
+
+  function chipRow(stop){
+    var h = '<div class="chips">';
+    svcsAt(stop).forEach(function(s){ h += '<button class="chip" data-svc="' + s.id + '">' + s.name + '</button>'; });
+    h += '<button class="chip" data-all="1">All services</button></div>';
+    return h;
+  }
+  function showStopCard(stop){
+    stopStyleCycle();
+    marker.visible = false;
+    var heads = {
+      driveway: ["At the driveway", "NEW DOORS & <b>CURB APPEAL</b>", "The door is the biggest single face your house shows the street. Stand here long enough and every neighbor judges it. Pick a service — or tap a door style and see it on the house."],
+      inside: ["Inside the garage", "REPAIRS & <b>TUNE-UPS</b>", "Everything that makes the door move lives in here: tracks, cables, rollers, seals. Most breakdowns start as a noise in this room months earlier."],
+      machine: ["Up at the machine", "SPRINGS & <b>OPENERS</b>", "That spring is the muscle — wound tight enough to lift the whole door by itself. The opener motor just guides it. When the spring snaps, the door is dead weight."]
+    }[stop];
+    cardBody.innerHTML =
+      '<div class="eyebrow">' + heads[0] + '</div><h3>' + heads[1] + '</h3><p>' + heads[2] + '</p>' + chipRow(stop);
+    card.classList.add("show");
+    wireChips();
+  }
+  function showService(id){
+    stopStyleCycle();
+    var s = svcById(id); if (!s) return;
+    marker.position.set(s.marker[0], s.marker[1], s.marker[2]);
+    marker.visible = true;
+    var h = '<button class="backlink" data-stop="' + s.stop + '">&larr; ' + STOP_LABEL[s.stop] + '</button>' +
+      '<div class="eyebrow">' + s.tag + '</div><h3>' + s.name.toUpperCase() + '</h3>' +
+      '<div class="signs"><b>Signs you need it</b>' + s.signs + '</div><ul>';
+    s.bullets.forEach(function(b){ h += '<li>' + b + '</li>'; });
+    h += '</ul>';
+    if (s.id === "install"){
+      h += '<div class="chips">' +
+        '<button class="chip on" data-style="modern">Modern glass</button>' +
+        '<button class="chip" data-style="traditional">Traditional</button>' +
+        '<button class="chip" data-style="carriage">Carriage wood</button></div>' +
+        '<p style="margin-top:9px">Tap a style — the door on the house changes.</p>';
+    }
+    h += '<div class="cta-row"><a class="cta" href="' + PHONE_TEL + '">Call now</a>' +
+      '<button class="cta ghosty" data-book="' + s.id + '">Book this service</button></div>';
+    cardBody.innerHTML = h;
+    card.classList.add("show");
+    wireChips();
+    if (s.id === "install") startStyleCycle();
+    var bk = cardBody.querySelector("[data-book]");
+    if (bk) bk.addEventListener("click", function(){ openBook(s.id); });
+    var bl = cardBody.querySelector(".backlink");
+    if (bl) bl.addEventListener("click", function(){ showStopCard(s.stop); });
+  }
+  function wireChips(){
+    cardBody.querySelectorAll("[data-svc]").forEach(function(c){
+      c.addEventListener("click", function(){ openService(c.getAttribute("data-svc")); });
+    });
+    cardBody.querySelectorAll("[data-all]").forEach(function(c){
+      c.addEventListener("click", openSheet);
+    });
+    cardBody.querySelectorAll("[data-style]").forEach(function(c){
+      c.addEventListener("click", function(){ stopStyleCycle(); setStyle(c.getAttribute("data-style")); });
+    });
+  }
+  function goToStop(stop, after){
+    if (state === stop){ if (after) after(); return; }
+    if (stop !== "driveway" && !doorOpen){
+      if (doorAnim || flying) return;
+      toggleDoor(function(){ flyTo(stop, after); });
+    } else {
+      if (flying) return;
+      flyTo(stop, after);
+    }
+  }
+  function openService(id){
+    var s = svcById(id); if (!s) return;
+    closeLayers();
+    if (state === s.stop && !flying) showService(id);
+    else { pendingService = id; goToStop(s.stop); }
+  }
+
+  /* services sheet */
+  var sheet = document.getElementById("svcSheet");
+  var scrim = document.getElementById("scrim");
+  var svcList = document.getElementById("svcList");
+  (function buildSheet(){
+    var h = "";
+    ["driveway", "inside", "machine"].forEach(function(stop){
+      h += "<h4>" + STOP_LABEL[stop] + "</h4>";
+      svcsAt(stop).forEach(function(s){
+        h += '<button class="svc-row" data-svc="' + s.id + '"><span><span class="nm">' + s.name +
+          '</span><span class="ds">' + s.tag + '</span></span><span class="arw">&rarr;</span></button>';
+      });
+    });
+    svcList.innerHTML = h;
+    svcList.querySelectorAll("[data-svc]").forEach(function(r){
+      r.addEventListener("click", function(){ openService(r.getAttribute("data-svc")); });
+    });
+    var sel = document.getElementById("bkSvc");
+    SERVICES.forEach(function(s){
+      var o = document.createElement("option"); o.value = s.id; o.textContent = s.name;
+      sel.appendChild(o);
+    });
+  })();
+  function openSheet(){ sheet.classList.add("on"); scrim.classList.add("on"); }
+  function closeLayers(){
+    sheet.classList.remove("on");
+    document.getElementById("bookModal").classList.remove("on");
+    scrim.classList.remove("on");
+  }
+  document.getElementById("svcBtn").addEventListener("click", openSheet);
+  document.getElementById("svcClose").addEventListener("click", closeLayers);
+  scrim.addEventListener("click", closeLayers);
+  document.getElementById("cardClose").addEventListener("click", function(){
+    stopStyleCycle();
+    card.classList.remove("show");
+    cardDismissedFor = state;
+    marker.visible = false;
+  });
+
+  /* booking sheet — prepares a request, sends nothing (stated on the form) */
+  function openBook(id){
+    if (id) document.getElementById("bkSvc").value = id;
+    closeLayers();
+    document.getElementById("bookModal").classList.add("on");
+    scrim.classList.add("on");
+  }
+  document.getElementById("bookClose").addEventListener("click", closeLayers);
+  document.getElementById("bkCopy").addEventListener("click", function(){
+    var btn = this;
+    var when = (document.querySelector('input[name="bktime"]:checked') || {}).value || "";
+    var s = svcById(document.getElementById("bkSvc").value);
+    var text = "Service request — Garage Door Co.\n" +
+      "Name: " + document.getElementById("bkName").value + "\n" +
+      "Phone: " + document.getElementById("bkPhone").value + "\n" +
+      "Service: " + (s ? s.name : "") + "\n" +
+      "When: " + when + "\n" +
+      "What the door is doing: " + document.getElementById("bkNotes").value;
+    function done(){ btn.textContent = "Copied — paste it anywhere"; setTimeout(function(){ btn.textContent = "Copy my request"; }, 2600); }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done).catch(function(){ fallback(); });
+    } else fallback();
+    function fallback(){
+      var ta = document.createElement("textarea");
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); done(); } catch(e){}
+      document.body.removeChild(ta);
+    }
+  });
+
+  var lastRefreshState = null;
   function refreshUI(){
     whereEl.innerHTML = WHERE[state];
-    card.classList.toggle("show", state === "machine");
     backBtn.hidden = state === "driveway";
     if (state === "driveway") mainBtn.textContent = doorOpen ? "Step inside" : "Open the door";
     else if (state === "inside") mainBtn.textContent = "Go to the machine";
     else mainBtn.textContent = "Back inside";
+    var arrived = lastRefreshState !== state;
+    lastRefreshState = state;
+    if (pendingService && svcById(pendingService) && svcById(pendingService).stop === state){
+      var id = pendingService; pendingService = null;
+      showService(id);
+    } else if (!pendingService && arrived && cardDismissedFor !== state){
+      showStopCard(state);
+    }
   }
   function syncYawPitch(){
     var d = new THREE.Vector3();
@@ -844,10 +1252,9 @@
   function flyTo(name, done){
     var v = VIEWS[name];
     var p0 = rig.position.clone(), p1 = v.pos.clone();
-    var d0 = new THREE.Vector3(); camera.getWorldDirection(d0);
-    var d1 = v.look.clone().sub(v.pos).normalize();
-    var q0 = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,-1), d0);
-    var q1 = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,-1), d1);
+    var q0 = camera.quaternion.clone();
+    var m1 = new THREE.Matrix4().lookAt(v.pos, v.look, new THREE.Vector3(0, 1, 0));
+    var q1 = new THREE.Quaternion().setFromRotationMatrix(m1);
     var startT = performance.now(); flying = true;
     (function step(){
       flyAnim = requestAnimationFrame(step);
@@ -898,7 +1305,7 @@
     var hits = ray.intersectObjects([hotspot].concat(panels), true);
     if (!hits.length) return;
     var o = hits[0].object;
-    if (o === hotspot){ if (state !== "machine" && !flying) flyTo("machine"); return; }
+    if (o === hotspot){ openService("springs"); return; }
     if (state === "driveway" && !doorAnim) toggleDoor();
   }
 
@@ -994,6 +1401,7 @@
     var t = clock.getElapsedTime();
     var s = 0.42*(1 + Math.sin(t*2.4)*0.07);
     hotspot.scale.set(s, s, 1);
+    if (marker.visible){ var ms = 0.88*(1 + Math.sin(t*3.1)*0.13); marker.scale.set(ms, ms, 1); }
     spillMat.opacity = doorT*0.3;
     hotspot.material.opacity = state === "machine" ? 0.25 : 0.95;
     if (renderer.xr.isPresenting){
