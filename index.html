@@ -906,8 +906,21 @@
 
   /* ---------- the machine: opener, rail, shaft, springs ---------- */
   var machine = new THREE.Group(); scene.add(machine);
-  var opener = box(0.62, 0.32, 0.42, M.red, -1.2, 2.92, -3.3, machine);
+  var openerMat = M.red.clone(); openerMat.transparent = true;
+  var opener = box(0.62, 0.32, 0.42, openerMat, -1.2, 2.92, -3.3, machine);
   opener.castShadow = true;
+  /* opener guts — revealed when the housing fades for the dissection view */
+  cyl(0.08, 0.08, 0.3, M.steel, -1.33, 2.92, -3.3, machine, true);
+  cyl(0.05, 0.05, 0.06, M.darkSteel, -1.14, 2.92, -3.3, machine, true);
+  var gear = new THREE.Group();
+  var gdisc = cyl(0.105, 0.105, 0.045, M.doorWhite, 0, 0, 0, gear, true);
+  for (var gt=0; gt<10; gt++){
+    var ga = gt/10*Math.PI*2;
+    var tooth = box(0.045, 0.04, 0.04, M.doorWhite, 0, Math.cos(ga)*0.118, Math.sin(ga)*0.118, gear);
+    tooth.rotation.x = -ga;
+  }
+  gear.position.set(-1.04, 2.92, -3.3);
+  machine.add(gear);
   box(0.5, 0.05, 0.34, M.redDark, -1.2, 2.74, -3.3, machine);
   box(0.2, 0.02, 0.14, M.lamp, -1.2, 2.71, -3.3, machine);
   box(0.09, 0.07, 3.3, M.darkSteel, -1.2, 3.12, -1.65, machine);
@@ -945,7 +958,25 @@
     cyl(0.05, 0.085, 0.09, M.darkSteel, cx - len/2 - 0.04, 2.68, -0.38, machine, true);
     cyl(0.085, 0.05, 0.09, M.darkSteel, cx + len/2 + 0.04, 2.68, -0.38, machine, true);
   }
-  spring(-2.35, 1.5); spring(-0.05, 1.5);
+  spring(-2.35, 1.5);
+  /* the right spring is built in two halves so it can snap open —
+     the broken-spring visual, with the shaft showing through the gap */
+  function springGeo(cx, len, t0, t1){
+    var pts = [], coils = Math.round(len/0.032), N = Math.max(10, Math.round(coils*10*(t1 - t0)));
+    for (var i=0; i<=N; i++){
+      var t = t0 + (i/N)*(t1 - t0), ang = t*coils*Math.PI*2;
+      pts.push(new THREE.Vector3(cx - len/2 + t*len, 2.68 + Math.cos(ang)*0.085, -0.38 + Math.sin(ang)*0.085));
+    }
+    return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), N, 0.0135, 6, false);
+  }
+  var splitL = new THREE.Group(), splitR = new THREE.Group();
+  machine.add(splitL); machine.add(splitR);
+  splitL.add(new THREE.Mesh(springGeo(-0.05, 1.5, 0, 0.5), M.darkSteel));
+  splitR.add(new THREE.Mesh(springGeo(-0.05, 1.5, 0.5, 1), M.darkSteel));
+  cyl(0.05, 0.085, 0.09, M.darkSteel, -0.84, 2.68, -0.38, splitL, true);
+  cyl(0.085, 0.05, 0.07, M.darkSteel, -0.085, 2.68, -0.38, splitL, true);
+  cyl(0.05, 0.085, 0.07, M.darkSteel, -0.015, 2.68, -0.38, splitR, true);
+  cyl(0.085, 0.05, 0.09, M.darkSteel, 0.74, 2.68, -0.38, splitR, true);
   box(0.06, 0.22, 0.16, M.darkSteel, -1.2, 2.68, -0.38, machine);
   [-3.35, 0.95].forEach(function(x){
     cyl(0.07, 0.07, 0.09, M.darkSteel, x, 2.68, -0.38, machine, true);
@@ -973,6 +1004,41 @@
   marker.scale.set(0.9, 0.9, 1);
   marker.visible = false;
   scene.add(marker);
+
+  /* rubber threshold strip the door seals against */
+  box(4.8, 0.035, 0.1, M.trim, -1.2, 0.018, 0.02, scene);
+
+  /* ---------- service visuals rig ---------- */
+  var hlMat = new THREE.MeshBasicMaterial({ color:0xe4572e, transparent:true, opacity:0.15, depthWrite:false });
+  var hlGroup = new THREE.Group();
+  var hlFill = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), hlMat);
+  var hlEdge = new THREE.LineSegments(
+    new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1)),
+    new THREE.LineBasicMaterial({ color:0xff8c5a, transparent:true, opacity:0.9 }));
+  hlGroup.add(hlFill); hlGroup.add(hlEdge);
+  hlGroup.visible = false; hlGroup.renderOrder = 5;
+  scene.add(hlGroup);
+  function setHL(cx, cy, cz, w, h, d){
+    hlGroup.position.set(cx, cy, cz);
+    hlGroup.scale.set(w, h, d);
+    hlGroup.visible = true;
+  }
+  /* a loose roller on a stem — sits in the track for Roller Replacement,
+     popped out beside it for Off-Track */
+  var rollerProp = new THREE.Group();
+  var rpWheel = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.021, 8, 20), M.darkSteel);
+  rollerProp.add(rpWheel);
+  cyl(0.02, 0.02, 0.07, M.steel, 0, 0, 0, rollerProp, false).rotation.x = Math.PI/2;
+  rollerProp.visible = false;
+  scene.add(rollerProp);
+  /* animated visual state, eased toward targets every frame */
+  var vis = { gap:0, gapT:0, tilt:0, tiltT:0, fade:1, fadeT:1, gear:false, rollerSpin:false, tour:null };
+  function clearVisuals(){
+    hlGroup.visible = false;
+    rollerProp.visible = false;
+    vis.gapT = 0; vis.tiltT = 0; vis.fadeT = 1; vis.gear = false; vis.rollerSpin = false;
+    if (vis.tour){ clearInterval(vis.tour); vis.tour = null; }
+  }
 
   /* door style switcher — the product, shown on the house itself */
   function setStyle(name){
@@ -1060,6 +1126,58 @@
       bullets:["LiftMaster, Chamberlain, Genie & Craftsman repaired","Belt, chain and wall-mount units installed","Smart Wi-Fi openers with battery backup","Sensors aligned; remotes & keypads programmed on the spot"],
       marker:[-1.2, 2.95, -3.05] }
   ];
+  /* every service gets a visual: a close-up camera, a highlight volume on the
+     part, and where it earns it, an animation — dissected opener, snapped
+     spring, crooked door, spinning roller, a tune-up that tours the parts */
+  var VIS = {
+    install:  { cam:[[0.2, 1.35, 6.4], [-1.2, 1.25, 0]], box:[-1.2, 1.24, 0.12, 5.0, 2.6, 0.4] },
+    panels:   { cam:[[0.6, 0.9, 4.2], [-0.7, 0.75, 0]], box:[-0.7, 0.62, 0.12, 4.9, 1.3, 0.4] },
+    offtrack: { cam:[[-1.4, 1.5, -2.2], [-3.5, 1.6, -0.35]], box:[-3.5, 1.5, -0.33, 0.4, 3.0, 0.45], fx:"offtrack" },
+    cables:   { cam:[[-2.2, 2.0, -2.6], [-3.35, 2.5, -0.35]], box:[-3.35, 1.95, -0.33, 0.42, 2.9, 0.42] },
+    rollers:  { cam:[[-2.3, 2.1, -2.4], [-3.5, 2.35, -0.32]], box:[-3.5, 2.35, -0.33, 0.42, 0.85, 0.45], fx:"rollers" },
+    seal:     { cam:[[-0.4, 0.55, -2.6], [-1.2, 0.1, 0.05]], box:[-1.2, 0.06, 0.03, 5.0, 0.16, 0.32] },
+    springs:  { cam:[[-2.5, 2.2, -2.7], [-0.7, 2.66, -0.38]], box:[-1.2, 2.68, -0.38, 4.4, 0.36, 0.36], fx:"springs" },
+    opener:   { cam:[[-2.3, 2.3, -1.5], [-1.2, 2.9, -3.25]], box:[-1.2, 2.92, -3.3, 0.9, 0.58, 0.7], fx:"opener" },
+    tuneup:   { cam:[[0.2, 1.7, -5.6], [-1.3, 2.3, -0.6]], tour:[
+      [-1.2, 2.68, -0.38, 4.4, 0.36, 0.36],
+      [-3.35, 1.95, -0.33, 0.42, 2.9, 0.42],
+      [-3.5, 2.35, -0.33, 0.42, 0.85, 0.45],
+      [-1.2, 2.92, -3.3, 0.9, 0.58, 0.7]
+    ] }
+  };
+  function applyVisual(s){
+    var V = VIS[s.id]; if (!V) return;
+    if (V.box) setHL(V.box[0], V.box[1], V.box[2], V.box[3], V.box[4], V.box[5]);
+    if (V.fx === "springs"){ vis.gapT = 0.06; vis.fadeT = 0.3; }
+    if (V.fx === "opener"){ vis.gear = true; vis.fadeT = 0.22; }
+    if (V.fx === "offtrack"){
+      vis.tiltT = 0.018;
+      rollerProp.visible = true;
+      rollerProp.position.set(-3.28, 2.05, -0.28);
+      rollerProp.rotation.set(0.5, Math.PI/2, 0.4);
+    }
+    if (V.fx === "rollers"){
+      rollerProp.visible = true;
+      rollerProp.position.set(-3.5, 2.32, -0.32);
+      rollerProp.rotation.set(0, Math.PI/2, 0);
+      vis.rollerSpin = true;
+    }
+    if (V.tour){
+      var ti = 0;
+      var stepTour = function(){
+        var b = V.tour[ti % V.tour.length];
+        setHL(b[0], b[1], b[2], b[3], b[4], b[5]);
+        ti++;
+      };
+      stepTour();
+      vis.tour = setInterval(stepTour, 2200);
+    }
+    if (V.cam){
+      svcCam = true;
+      flyCamTo(new THREE.Vector3(V.cam[0][0], V.cam[0][1], V.cam[0][2]),
+               new THREE.Vector3(V.cam[1][0], V.cam[1][1], V.cam[1][2]), 1600);
+    }
+  }
   function svcById(id){ for (var i=0; i<SERVICES.length; i++) if (SERVICES[i].id === id) return SERVICES[i]; return null; }
   function svcsAt(stop){ return SERVICES.filter(function(s){ return s.stop === stop; }); }
 
@@ -1087,7 +1205,12 @@
   }
   function showStopCard(stop){
     stopStyleCycle();
+    clearVisuals();
     marker.visible = false;
+    if (svcCam){
+      svcCam = false;
+      flyCamTo(VIEWS[state].pos, VIEWS[state].look, 1600);
+    }
     var heads = {
       driveway: ["At the driveway", "NEW DOORS & <b>CURB APPEAL</b>", "The door is the biggest single face your house shows the street. Stand here long enough and every neighbor judges it. Pick a service — or tap a door style and see it on the house."],
       inside: ["Inside the garage", "REPAIRS & <b>TUNE-UPS</b>", "Everything that makes the door move lives in here: tracks, cables, rollers, seals. Most breakdowns start as a noise in this room months earlier."],
@@ -1100,6 +1223,7 @@
   }
   function showService(id){
     stopStyleCycle();
+    clearVisuals();
     var s = svcById(id); if (!s) return;
     marker.position.set(s.marker[0], s.marker[1], s.marker[2]);
     marker.visible = true;
@@ -1121,6 +1245,7 @@
     card.classList.add("show");
     wireChips();
     if (s.id === "install") startStyleCycle();
+    applyVisual(s);
     var bk = cardBody.querySelector("[data-book]");
     if (bk) bk.addEventListener("click", function(){ openBook(s.id); });
     var bl = cardBody.querySelector(".backlink");
@@ -1177,7 +1302,7 @@
       sel.appendChild(o);
     });
   })();
-  function openSheet(){ sheet.classList.add("on"); scrim.classList.add("on"); }
+  function openSheet(){ clearVisuals(); sheet.classList.add("on"); scrim.classList.add("on"); }
   function closeLayers(){
     sheet.classList.remove("on");
     document.getElementById("bookModal").classList.remove("on");
@@ -1249,28 +1374,43 @@
     camera.rotation.order = "YXZ";
     camera.rotation.set(pitch, yaw, 0);
   }
-  function flyTo(name, done){
-    var v = VIEWS[name];
-    var p0 = rig.position.clone(), p1 = v.pos.clone();
+  var flyAnim = null, svcCam = false;
+  function flyCamTo(p1, look, dur, done){
+    if (flyAnim) cancelAnimationFrame(flyAnim);
+    var p0 = rig.position.clone();
     var q0 = camera.quaternion.clone();
-    var m1 = new THREE.Matrix4().lookAt(v.pos, v.look, new THREE.Vector3(0, 1, 0));
+    var m1 = new THREE.Matrix4().lookAt(p1, look, new THREE.Vector3(0, 1, 0));
     var q1 = new THREE.Quaternion().setFromRotationMatrix(m1);
     var startT = performance.now(); flying = true;
     (function step(){
       flyAnim = requestAnimationFrame(step);
-      var t = Math.min((performance.now() - startT)/1900, 1);
+      var t = Math.min((performance.now() - startT)/(dur || 1900), 1);
       var e = t >= 1 ? 1 : (t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2)/2);
       rig.position.lerpVectors(p0, p1, e);
       var q = new THREE.Quaternion(); q.slerpQuaternions(q0, q1, e);
       camera.quaternion.copy(q);
       if (t >= 1){
         cancelAnimationFrame(flyAnim); flyAnim = null; flying = false;
-        state = name; syncYawPitch(); refreshUI();
+        syncYawPitch();
         if (done) done();
+        /* a service tapped mid-flight waits here instead of dying —
+           flyTo arrivals consume it via refreshUI, camera-only flights
+           (fly-back, service close-ups) land here */
+        if (pendingService && svcById(pendingService) && svcById(pendingService).stop === state){
+          var pid = pendingService; pendingService = null;
+          showService(pid);
+        }
       }
     })();
   }
-  var flyAnim = null;
+  function flyTo(name, done){
+    var v = VIEWS[name];
+    svcCam = false;
+    flyCamTo(v.pos, v.look, 1900, function(){
+      state = name; refreshUI();
+      if (done) done();
+    });
+  }
 
   function toggleDoor(cb){
     var from = doorT, to = doorOpen ? 0 : 1, startT = performance.now();
@@ -1402,6 +1542,15 @@
     var s = 0.42*(1 + Math.sin(t*2.4)*0.07);
     hotspot.scale.set(s, s, 1);
     if (marker.visible){ var ms = 0.88*(1 + Math.sin(t*3.1)*0.13); marker.scale.set(ms, ms, 1); }
+    vis.gap += (vis.gapT - vis.gap)*0.06;
+    splitR.position.x = vis.gap; splitL.position.x = -vis.gap*0.35;
+    vis.tilt += (vis.tiltT - vis.tilt)*0.06;
+    doorGroup.rotation.z = vis.tilt;
+    vis.fade += (vis.fadeT - vis.fade)*0.08;
+    openerMat.opacity = vis.fade;
+    if (vis.gear) gear.rotation.x += 0.045;
+    if (vis.rollerSpin) rpWheel.rotation.z += 0.07;
+    if (hlGroup.visible) hlMat.opacity = 0.13 + Math.sin(t*3.2)*0.05;
     spillMat.opacity = doorT*0.3;
     hotspot.material.opacity = state === "machine" ? 0.25 : 0.95;
     if (renderer.xr.isPresenting){
