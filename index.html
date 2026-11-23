@@ -187,10 +187,34 @@
   .modal .note{font-size:11.5px;color:var(--ink-dim);line-height:1.55;margin-top:12px}
   .modal .x{position:absolute;top:10px;right:14px;background:none;border:none;color:var(--ink-dim);font-size:24px;cursor:pointer}
 
+  /* floating label that names the exact part being shown */
+  #partTag{
+    position:fixed;left:0;top:0;z-index:18;display:none;align-items:center;gap:7px;
+    background:rgba(14,11,8,.82);border:1px solid rgba(255,138,60,.55);border-radius:20px;
+    padding:6px 12px 6px 9px;font:600 11px 'Archivo',sans-serif;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--ink);pointer-events:none;white-space:nowrap;
+    backdrop-filter:blur(4px);will-change:transform;
+  }
+  #partTag i{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none;box-shadow:0 0 8px var(--accent)}
+  /* the card adjusts: mini mode keeps the visual clear, details one tap away */
+  .cardtoggle{
+    display:block;margin-top:11px;background:none;border:none;color:var(--accent);
+    font:600 11px 'Archivo',sans-serif;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;padding:2px 0;
+  }
+  .card.mini .signs,.card.mini ul,.card.mini p{display:none}
+  .card.mini{padding-bottom:12px}
+
   @media (max-width:1100px){ .emerg{display:none} }
   @media (max-width:640px){
     .tool.call .num{display:none}
     .card{bottom:132px}
+    /* services menu becomes a bottom sheet — never the whole screen */
+    .sheet{
+      top:auto;bottom:0;left:0;right:0;width:100%;height:auto;max-height:66vh;
+      transform:translateY(103%);border-left:none;border-top:1px solid var(--line);
+      border-radius:12px 12px 0 0;
+    }
+    .sheet.on{transform:none}
   }
     .brand{font-size:11px;left:12px;top:15px;white-space:nowrap}
     .brand small{display:none}
@@ -231,7 +255,10 @@
 <div class="card" id="infoCard">
   <button class="cardx" id="cardClose" aria-label="Close">&times;</button>
   <div id="cardBody"></div>
+  <button class="cardtoggle" id="cardToggle">▾ Details</button>
 </div>
+
+<div id="partTag"></div>
 
 <div class="scrim" id="scrim"></div>
 
@@ -708,10 +735,20 @@
   })();
 
   /* ---------- the working door (4 modeled sections) ---------- */
+  /* glow kit — fitted highlights that hug the exact part, plus own-material
+     clones for the parts that pulse with light (shared mats would light
+     up half the garage) */
+  var haloMat = new THREE.MeshBasicMaterial({ color:0xff6a2a, transparent:true, opacity:0.45, blending:THREE.AdditiveBlending, depthWrite:false });
+  var haloLineMat = new THREE.LineBasicMaterial({ color:0xff8c5a, transparent:true, opacity:0.95 });
+  var springMat = M.darkSteel.clone(); springMat.emissive = new THREE.Color(0xff5a1e); springMat.emissiveIntensity = 0;
+  var gearMat = M.doorWhite.clone(); gearMat.emissive = new THREE.Color(0xff5a1e); gearMat.emissiveIntensity = 0;
+  var motorMat = M.steel.clone(); motorMat.emissive = new THREE.Color(0xff5a1e); motorMat.emissiveIntensity = 0;
+  var rollerMat = M.darkSteel.clone(); rollerMat.emissive = new THREE.Color(0xff5a1e); rollerMat.emissiveIntensity = 0;
+
   var DOOR_W = 4.8, PANEL_H = 0.6125, DOOR_TRAVEL = 2.85;
   var doorGroup = new THREE.Group(); scene.add(doorGroup);
   var panels = [];
-  var panelBodies = [], panelGlass = [], frameMeshes = [], raisedGroups = [], strapGroups = [];
+  var panelBodies = [], panelGlass = [], frameMeshes = [], raisedGroups = [], strapGroups = [], panelFrames = [];
   for (var pi=0; pi<4; pi++){
     var pg = new THREE.Group();
     var body = box(DOOR_W, PANEL_H-0.015, 0.05, M.doorBlk, 0, 0, 0, pg, true);
@@ -739,6 +776,14 @@
     box(0.09, 0.12, 0.02, M.steel, -1.6, 0.27, -0.045, pg);       /* hinges */
     box(0.09, 0.12, 0.02, M.steel, 1.6, 0.27, -0.045, pg);
     box(0.05, 0.05, 0.06, M.steel, 2.1, -0.1, 0.05, pg);          /* handle */
+    /* fitted outline frame for THIS section only — rides the panel
+       wherever the door takes it */
+    var pf = new THREE.Group();
+    box(DOOR_W + 0.06, 0.04, 0.02, haloMat, 0, PANEL_H/2 + 0.012, 0.048, pf, false, false);
+    box(DOOR_W + 0.06, 0.04, 0.02, haloMat, 0, -PANEL_H/2 - 0.012, 0.048, pf, false, false);
+    box(0.04, PANEL_H + 0.06, 0.02, haloMat, -DOOR_W/2 - 0.012, 0, 0.048, pf, false, false);
+    box(0.04, PANEL_H + 0.06, 0.02, haloMat, DOOR_W/2 + 0.012, 0, 0.048, pf, false, false);
+    pf.visible = false; pf.renderOrder = 6; pg.add(pf); panelFrames.push(pf);
     pg.userData.baseA = PANEL_H/2 + pi*PANEL_H;
     doorGroup.add(pg); panels.push(pg);
   }
@@ -910,13 +955,13 @@
   var opener = box(0.62, 0.32, 0.42, openerMat, -1.2, 2.92, -3.3, machine);
   opener.castShadow = true;
   /* opener guts — revealed when the housing fades for the dissection view */
-  cyl(0.08, 0.08, 0.3, M.steel, -1.33, 2.92, -3.3, machine, true);
+  cyl(0.08, 0.08, 0.3, motorMat, -1.33, 2.92, -3.3, machine, true);
   cyl(0.05, 0.05, 0.06, M.darkSteel, -1.14, 2.92, -3.3, machine, true);
   var gear = new THREE.Group();
-  var gdisc = cyl(0.105, 0.105, 0.045, M.doorWhite, 0, 0, 0, gear, true);
+  var gdisc = cyl(0.105, 0.105, 0.045, gearMat, 0, 0, 0, gear, true);
   for (var gt=0; gt<10; gt++){
     var ga = gt/10*Math.PI*2;
-    var tooth = box(0.045, 0.04, 0.04, M.doorWhite, 0, Math.cos(ga)*0.118, Math.sin(ga)*0.118, gear);
+    var tooth = box(0.045, 0.04, 0.04, gearMat, 0, Math.cos(ga)*0.118, Math.sin(ga)*0.118, gear);
     tooth.rotation.x = -ga;
   }
   gear.position.set(-1.04, 2.92, -3.3);
@@ -961,18 +1006,25 @@
   spring(-2.35, 1.5);
   /* the right spring is built in two halves so it can snap open —
      the broken-spring visual, with the shaft showing through the gap */
-  function springGeo(cx, len, t0, t1){
+  function springGeo(cx, len, t0, t1, tubeR){
     var pts = [], coils = Math.round(len/0.032), N = Math.max(10, Math.round(coils*10*(t1 - t0)));
     for (var i=0; i<=N; i++){
       var t = t0 + (i/N)*(t1 - t0), ang = t*coils*Math.PI*2;
       pts.push(new THREE.Vector3(cx - len/2 + t*len, 2.68 + Math.cos(ang)*0.085, -0.38 + Math.sin(ang)*0.085));
     }
-    return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), N, 0.0135, 6, false);
+    return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), N, tubeR || 0.0135, 6, false);
   }
   var splitL = new THREE.Group(), splitR = new THREE.Group();
   machine.add(splitL); machine.add(splitR);
-  splitL.add(new THREE.Mesh(springGeo(-0.05, 1.5, 0, 0.5), M.darkSteel));
-  splitR.add(new THREE.Mesh(springGeo(-0.05, 1.5, 0.5, 1), M.darkSteel));
+  splitL.add(new THREE.Mesh(springGeo(-0.05, 1.5, 0, 0.5), springMat));
+  splitR.add(new THREE.Mesh(springGeo(-0.05, 1.5, 0.5, 1), springMat));
+  /* glow sleeves that wrap the broken spring's own coils — they ride the
+     two halves, so the highlight itself snaps apart at the gap */
+  var sleeveL = new THREE.Mesh(springGeo(-0.05, 1.5, 0, 0.5, 0.021), haloMat);
+  var sleeveR = new THREE.Mesh(springGeo(-0.05, 1.5, 0.5, 1, 0.021), haloMat);
+  sleeveL.visible = false; sleeveR.visible = false;
+  sleeveL.renderOrder = 6; sleeveR.renderOrder = 6;
+  splitL.add(sleeveL); splitR.add(sleeveR);
   cyl(0.05, 0.085, 0.09, M.darkSteel, -0.84, 2.68, -0.38, splitL, true);
   cyl(0.085, 0.05, 0.07, M.darkSteel, -0.085, 2.68, -0.38, splitL, true);
   cyl(0.05, 0.085, 0.07, M.darkSteel, -0.015, 2.68, -0.38, splitR, true);
@@ -1008,35 +1060,54 @@
   /* rubber threshold strip the door seals against */
   box(4.8, 0.035, 0.1, M.trim, -1.2, 0.018, 0.02, scene);
 
-  /* ---------- service visuals rig ---------- */
-  var hlMat = new THREE.MeshBasicMaterial({ color:0xe4572e, transparent:true, opacity:0.15, depthWrite:false });
-  var hlGroup = new THREE.Group();
-  var hlFill = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), hlMat);
-  var hlEdge = new THREE.LineSegments(
-    new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1)),
-    new THREE.LineBasicMaterial({ color:0xff8c5a, transparent:true, opacity:0.9 }));
-  hlGroup.add(hlFill); hlGroup.add(hlEdge);
-  hlGroup.visible = false; hlGroup.renderOrder = 5;
-  scene.add(hlGroup);
-  function setHL(cx, cy, cz, w, h, d){
-    hlGroup.position.set(cx, cy, cz);
-    hlGroup.scale.set(w, h, d);
-    hlGroup.visible = true;
+  /* ---------- service visuals rig: fitted glow on the exact part ---------- */
+  var drumGlow = cyl(0.082, 0.082, 0.13, haloMat, -3.35, 2.68, -0.38, scene, true);
+  var cableGlow = cyl(0.011, 0.011, 2.5, haloMat, -3.35, 1.4, -0.3, scene);
+  var trackGlow = box(0.04, 2.9, 0.08, haloMat, -3.52, 1.5, -0.33, scene, false, false);
+  var sealGlow = box(4.84, 0.025, 0.13, haloMat, -1.2, 0.05, 0.02, scene, false, false);
+  var openerEdges = new THREE.LineSegments(
+    new THREE.EdgesGeometry(new THREE.BoxGeometry(0.72, 0.42, 0.52)), haloLineMat);
+  openerEdges.position.set(-1.2, 2.92, -3.3);
+  scene.add(openerEdges);
+  var ALL_GLOW = [sleeveL, sleeveR, drumGlow, cableGlow, trackGlow, sealGlow, openerEdges].concat(panelFrames);
+  ALL_GLOW.forEach(function(g){ g.visible = false; g.renderOrder = 6; });
+  function setGlow(list){
+    ALL_GLOW.forEach(function(g){ g.visible = list.indexOf(g) >= 0; });
   }
+  var GLOWS = {
+    springs: [sleeveL, sleeveR],
+    opener: [openerEdges],
+    cables: [drumGlow, cableGlow],
+    track: [trackGlow],
+    seal: [sealGlow],
+    panel: null, /* set below — needs panelFrames[0] */
+    door: panelFrames
+  };
+  GLOWS.panel = [panelFrames[0]];
   /* a loose roller on a stem — sits in the track for Roller Replacement,
      popped out beside it for Off-Track */
   var rollerProp = new THREE.Group();
-  var rpWheel = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.021, 8, 20), M.darkSteel);
+  var rpWheel = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.021, 8, 20), rollerMat);
   rollerProp.add(rpWheel);
   cyl(0.02, 0.02, 0.07, M.steel, 0, 0, 0, rollerProp, false).rotation.x = Math.PI/2;
   rollerProp.visible = false;
   scene.add(rollerProp);
+  /* floating label that names the exact part on screen */
+  var partTag = document.getElementById("partTag");
+  var tagAnchor = null, _tv = new THREE.Vector3();
+  function setTag(anchor, text){
+    if (!anchor){ tagAnchor = null; partTag.style.display = "none"; return; }
+    tagAnchor = anchor;
+    partTag.innerHTML = "<i></i>" + text;
+  }
   /* animated visual state, eased toward targets every frame */
-  var vis = { gap:0, gapT:0, tilt:0, tiltT:0, fade:1, fadeT:1, gear:false, rollerSpin:false, tour:null };
+  var vis = { gap:0, gapT:0, tilt:0, tiltT:0, fade:1, fadeT:1, gear:false, rollerSpin:false, tour:null, pulse:[] };
   function clearVisuals(){
-    hlGroup.visible = false;
+    setGlow([]);
+    setTag(null);
     rollerProp.visible = false;
-    vis.gapT = 0; vis.tiltT = 0; vis.fadeT = 1; vis.gear = false; vis.rollerSpin = false;
+    vis.gapT = 0; vis.tiltT = 0; vis.fadeT = 1; vis.gear = false; vis.rollerSpin = false; vis.pulse = [];
+    [springMat, gearMat, motorMat, rollerMat].forEach(function(m){ m.emissiveIntensity = 0; });
     if (vis.tour){ clearInterval(vis.tour); vis.tour = null; }
   }
 
@@ -1070,6 +1141,17 @@
   var mainBtn = document.getElementById("mainBtn");
   var backBtn = document.getElementById("backBtn");
   var card = document.getElementById("infoCard");
+  var cardToggle = document.getElementById("cardToggle");
+  var cardMiniPref = null;
+  function setCardMini(mini){
+    card.classList.toggle("mini", mini);
+    cardToggle.textContent = mini ? "▾ Details" : "▴ Less";
+  }
+  cardToggle.addEventListener("click", function(){
+    var now = !card.classList.contains("mini");
+    cardMiniPref = now;
+    setCardMini(now);
+  });
   var WHERE = {
     driveway: "<b>Driveway</b> — new doors & curb appeal",
     inside:   "<b>Inside</b> — repairs & tune-ups. Tap the orange ring at the spring",
@@ -1126,38 +1208,40 @@
       bullets:["LiftMaster, Chamberlain, Genie & Craftsman repaired","Belt, chain and wall-mount units installed","Smart Wi-Fi openers with battery backup","Sensors aligned; remotes & keypads programmed on the spot"],
       marker:[-1.2, 2.95, -3.05] }
   ];
-  /* every service gets a visual: a close-up camera, a highlight volume on the
-     part, and where it earns it, an animation — dissected opener, snapped
-     spring, crooked door, spinning roller, a tune-up that tours the parts */
+  /* every service gets a visual: a close-up camera, a fitted glow on the
+     exact part (never a broad box), a floating label naming the part, and
+     where it earns it, an animation — dissected opener, snapped spring,
+     crooked door, spinning roller, a tune-up that tours the parts */
   var VIS = {
-    install:  { cam:[[0.2, 1.35, 6.4], [-1.2, 1.25, 0]], box:[-1.2, 1.24, 0.12, 5.0, 2.6, 0.4] },
-    panels:   { cam:[[0.6, 0.9, 4.2], [-0.7, 0.75, 0]], box:[-0.7, 0.62, 0.12, 4.9, 1.3, 0.4] },
-    offtrack: { cam:[[-1.4, 1.5, -2.2], [-3.5, 1.6, -0.35]], box:[-3.5, 1.5, -0.33, 0.4, 3.0, 0.45], fx:"offtrack" },
-    cables:   { cam:[[-2.2, 2.0, -2.6], [-3.35, 2.5, -0.35]], box:[-3.35, 1.95, -0.33, 0.42, 2.9, 0.42] },
-    rollers:  { cam:[[-2.3, 2.1, -2.4], [-3.5, 2.35, -0.32]], box:[-3.5, 2.35, -0.33, 0.42, 0.85, 0.45], fx:"rollers" },
-    seal:     { cam:[[-0.4, 0.55, -2.6], [-1.2, 0.1, 0.05]], box:[-1.2, 0.06, 0.03, 5.0, 0.16, 0.32] },
-    springs:  { cam:[[-2.5, 2.2, -2.7], [-0.7, 2.66, -0.38]], box:[-1.2, 2.68, -0.38, 4.4, 0.36, 0.36], fx:"springs" },
-    opener:   { cam:[[-2.3, 2.3, -1.5], [-1.2, 2.9, -3.25]], box:[-1.2, 2.92, -3.3, 0.9, 0.58, 0.7], fx:"opener" },
+    install:  { cam:[[0.2, 1.35, 6.4], [-1.2, 1.25, 0]], glow:"door", tag:[[-1.2, 2.9, 0.15], "The door — tap a style below"] },
+    panels:   { cam:[[0.6, 0.9, 4.2], [-0.7, 0.75, 0]], glow:"panel", tag:[[-1.2, 1.05, 0.15], "Just this section"] },
+    offtrack: { cam:[[-1.4, 1.5, -2.2], [-3.5, 1.6, -0.35]], glow:"track", fx:"offtrack", tag:[[-3.42, 2.05, -0.28], "Roller — popped out"] },
+    cables:   { cam:[[-2.2, 2.0, -2.6], [-3.35, 2.5, -0.35]], glow:"cables", tag:[[-3.28, 2.2, -0.26], "Lift cable & drum"] },
+    rollers:  { cam:[[-2.3, 2.1, -2.4], [-3.5, 2.35, -0.32]], fx:"rollers", tag:[[-3.44, 2.66, -0.3], "Nylon roller"] },
+    seal:     { cam:[[-0.4, 0.55, -2.6], [-1.2, 0.1, 0.05]], glow:"seal", tag:[[-1.2, 0.32, 0.1], "Bottom seal"] },
+    springs:  { cam:[[-2.5, 2.2, -2.7], [-0.7, 2.66, -0.38]], glow:"springs", fx:"springs", tag:[[-0.05, 3.02, -0.35], "Torsion spring — snapped"] },
+    opener:   { cam:[[-2.3, 2.3, -1.5], [-1.2, 2.9, -3.25]], glow:"opener", fx:"opener", tag:[[-1.2, 3.38, -3.3], "Opener — motor & gear inside"] },
     tuneup:   { cam:[[0.2, 1.7, -5.6], [-1.3, 2.3, -0.6]], tour:[
-      [-1.2, 2.68, -0.38, 4.4, 0.36, 0.36],
-      [-3.35, 1.95, -0.33, 0.42, 2.9, 0.42],
-      [-3.5, 2.35, -0.33, 0.42, 0.85, 0.45],
-      [-1.2, 2.92, -3.3, 0.9, 0.58, 0.7]
+      { glow:"springs", pulse:"springs", tag:[[-0.05, 3.02, -0.35], "1 · Torsion springs"] },
+      { glow:"cables", tag:[[-3.28, 2.2, -0.26], "2 · Cables & drums"] },
+      { glow:"track", fx:"rollers", tag:[[-3.44, 2.66, -0.3], "3 · Rollers & tracks"] },
+      { glow:"opener", pulse:"opener", tag:[[-1.2, 3.38, -3.3], "4 · Opener motor"] }
     ] }
   };
   function applyVisual(s){
     var V = VIS[s.id]; if (!V) return;
-    if (V.box) setHL(V.box[0], V.box[1], V.box[2], V.box[3], V.box[4], V.box[5]);
-    if (V.fx === "springs"){ vis.gapT = 0.06; vis.fadeT = 0.3; }
-    if (V.fx === "opener"){ vis.gear = true; vis.fadeT = 0.22; }
+    if (V.glow) setGlow(GLOWS[V.glow] || []);
+    if (V.tag) setTag(V.tag[0], V.tag[1]);
+    if (V.fx === "springs"){ vis.gapT = 0.06; vis.fadeT = 0.3; vis.pulse = [springMat]; }
+    if (V.fx === "opener"){ vis.gear = true; vis.fadeT = 0.22; vis.pulse = [gearMat, motorMat]; }
     if (V.fx === "offtrack"){
-      vis.tiltT = 0.018;
+      vis.tiltT = 0.018; vis.pulse = [rollerMat];
       rollerProp.visible = true;
       rollerProp.position.set(-3.28, 2.05, -0.28);
       rollerProp.rotation.set(0.5, Math.PI/2, 0.4);
     }
     if (V.fx === "rollers"){
-      rollerProp.visible = true;
+      rollerProp.visible = true; vis.pulse = [rollerMat];
       rollerProp.position.set(-3.5, 2.32, -0.32);
       rollerProp.rotation.set(0, Math.PI/2, 0);
       vis.rollerSpin = true;
@@ -1165,9 +1249,16 @@
     if (V.tour){
       var ti = 0;
       var stepTour = function(){
-        var b = V.tour[ti % V.tour.length];
-        setHL(b[0], b[1], b[2], b[3], b[4], b[5]);
-        ti++;
+        var st = V.tour[ti % V.tour.length]; ti++;
+        setGlow(GLOWS[st.glow] || []);
+        setTag(st.tag[0], st.tag[1]);
+        vis.pulse = st.pulse === "springs" ? [springMat] : st.pulse === "opener" ? [gearMat, motorMat] : [];
+        rollerProp.visible = st.fx === "rollers";
+        if (st.fx === "rollers"){
+          rollerProp.position.set(-3.5, 2.32, -0.32);
+          rollerProp.rotation.set(0, Math.PI/2, 0);
+        }
+        vis.rollerSpin = st.fx === "rollers";
       };
       stepTour();
       vis.tour = setInterval(stepTour, 2200);
@@ -1219,6 +1310,7 @@
     cardBody.innerHTML =
       '<div class="eyebrow">' + heads[0] + '</div><h3>' + heads[1] + '</h3><p>' + heads[2] + '</p>' + chipRow(stop);
     card.classList.add("show");
+    setCardMini(cardMiniPref !== null ? cardMiniPref : false);
     wireChips();
   }
   function showService(id){
@@ -1243,6 +1335,7 @@
       '<button class="cta ghosty" data-book="' + s.id + '">Book this service</button></div>';
     cardBody.innerHTML = h;
     card.classList.add("show");
+    setCardMini(cardMiniPref !== null ? cardMiniPref : window.innerWidth <= 760);
     wireChips();
     if (s.id === "install") startStyleCycle();
     applyVisual(s);
@@ -1550,7 +1643,19 @@
     openerMat.opacity = vis.fade;
     if (vis.gear) gear.rotation.x += 0.045;
     if (vis.rollerSpin) rpWheel.rotation.z += 0.07;
-    if (hlGroup.visible) hlMat.opacity = 0.13 + Math.sin(t*3.2)*0.05;
+    haloMat.opacity = 0.4 + Math.sin(t*3.2)*0.16;
+    haloLineMat.opacity = 0.72 + Math.sin(t*3.2)*0.28;
+    for (var pm=0; pm<vis.pulse.length; pm++) vis.pulse[pm].emissiveIntensity = 0.55 + Math.sin(t*3.2)*0.35;
+    if (tagAnchor){
+      _tv.set(tagAnchor[0], tagAnchor[1], tagAnchor[2]).project(camera);
+      if (_tv.z < 1 && _tv.x > -1.05 && _tv.x < 1.05 && _tv.y > -1.05 && _tv.y < 1.05){
+        var tx = (_tv.x*0.5 + 0.5)*window.innerWidth, ty = (-_tv.y*0.5 + 0.5)*window.innerHeight;
+        tx = Math.max(134, Math.min(window.innerWidth - 134, tx));
+        ty = Math.max(48, Math.min(window.innerHeight - 30, ty));
+        partTag.style.display = "flex";
+        partTag.style.transform = "translate(" + tx.toFixed(1) + "px," + ty.toFixed(1) + "px) translate(-50%,-150%)";
+      } else partTag.style.display = "none";
+    }
     spillMat.opacity = doorT*0.3;
     hotspot.material.opacity = state === "machine" ? 0.25 : 0.95;
     if (renderer.xr.isPresenting){
