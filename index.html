@@ -300,6 +300,35 @@
     var t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
     return t;
   })();
+  var glowTex = (function(){
+    var c = document.createElement("canvas"); c.width = c.height = 128;
+    var g = c.getContext("2d");
+    var rg = g.createRadialGradient(64, 64, 2, 64, 64, 62);
+    rg.addColorStop(0, "rgba(255,214,150,0.9)"); rg.addColorStop(0.35, "rgba(255,190,110,0.35)");
+    rg.addColorStop(1, "rgba(255,180,100,0)");
+    g.fillStyle = rg; g.fillRect(0, 0, 128, 128);
+    var t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  })();
+  var cardboardTex = canvasTex(256, function(g, s){
+    g.fillStyle = "#b28c5e"; g.fillRect(0, 0, s, s);
+    speckle(g, s, 2600, 0.1);
+    g.fillStyle = "rgba(146,110,66,0.55)"; g.fillRect(s/2 - 20, 0, 40, s);
+    g.fillStyle = "rgba(120,88,50,0.35)"; g.fillRect(s/2 - 2, 0, 4, s);
+    g.strokeStyle = "rgba(96,70,38,0.5)"; g.lineWidth = 5; g.strokeRect(0, 0, s, s);
+    g.fillStyle = "rgba(90,64,34,0.5)";
+    for (var i=0; i<4; i++) g.fillRect(18, 20 + i*13, 74 - (i%2)*22, 6);
+  }, 1, 1);
+  var labelTex = (function(){
+    var c = document.createElement("canvas"); c.width = 128; c.height = 80;
+    var g = c.getContext("2d");
+    g.fillStyle = "#e8e2d4"; g.fillRect(0, 0, 128, 80);
+    g.fillStyle = "#b3402e"; g.fillRect(0, 0, 128, 16);
+    g.fillStyle = "rgba(60,58,52,0.75)";
+    for (var i=0; i<3; i++) g.fillRect(12, 28 + i*14, 92 - (i%2)*30, 6);
+    var t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  })();
   function contactShadow(w, d, x, y, z){
     var m = new THREE.Mesh(
       new THREE.PlaneGeometry(w, d),
@@ -343,10 +372,17 @@
     drywall: pbrMat("plaster", 3, 1, true, { envMapIntensity:0.4 }),
     steel:   new THREE.MeshStandardMaterial({ color:0x9aa0a4, roughness:0.32, metalness:0.75, envMapIntensity:0.9 }),
     darkSteel:new THREE.MeshStandardMaterial({ color:0x3c3f42, roughness:0.42, metalness:0.65, envMapIntensity:0.7 }),
-    shelf:   new THREE.MeshStandardMaterial({ color:0x6f7478, roughness:0.42, metalness:0.7, envMapIntensity:0.7 }),
+    shelf:   pbrMat("metal", 1, 1, true, { metalness:0.8, envMapIntensity:0.8, color:0xd6d9dc }),
+    metal:   pbrMat("metal", 1, 1, true, { metalness:0.85, envMapIntensity:0.9 }),
+    roofTile:pbrMat("rooftile", 3, 2, false, { envMapIntensity:0.35 }),
+    roofFlat:pbrMat("roofflat", 4, 4, false, { envMapIntensity:0.35 }),
+    pave:    pbrMat("pave", 7, 1, false, { envMapIntensity:0.35 }),
     binGray: new THREE.MeshStandardMaterial({ color:0x7c8287, roughness:0.65, envMapIntensity:0.5 }),
     binBlue: new THREE.MeshStandardMaterial({ color:0x33566e, roughness:0.65, envMapIntensity:0.5 }),
+    binYel:  new THREE.MeshStandardMaterial({ color:0xc9a227, roughness:0.6, envMapIntensity:0.5 }),
     card:    new THREE.MeshStandardMaterial({ color:0xb08d5f, roughness:0.9, envMapIntensity:0.4 }),
+    cardboard: new THREE.MeshStandardMaterial({ map:cardboardTex, roughness:0.92, envMapIntensity:0.35 }),
+    labelM:  new THREE.MeshStandardMaterial({ map:labelTex, roughness:0.8, envMapIntensity:0.3 }),
     tire:    new THREE.MeshStandardMaterial({ color:0x1b1b1d, roughness:0.92, bumpMap:tireBump, bumpScale:0.5, envMapIntensity:0.35 }),
     rim:     new THREE.MeshStandardMaterial({ color:0xb9bdc2, roughness:0.3, metalness:0.85, envMapIntensity:1.0 }),
     red:     new THREE.MeshPhysicalMaterial({ color:0xa52a21, roughness:0.42, clearcoat:0.4, clearcoatRoughness:0.35, envMapIntensity:0.7 }),
@@ -392,16 +428,59 @@
   var lawnL = new THREE.Mesh(new THREE.PlaneGeometry(7, 11), M.lawn);
   lawnL.rotation.x = -Math.PI/2; lawnL.position.set(-8.85, 0.005, 5.5); scene.add(lawnL);
   var lawnR = lawnL.clone(); lawnR.position.x = 7.65; scene.add(lawnR);
+  /* concrete expansion joints in the driveway */
+  [2.4, 5.5, 8.6].forEach(function(z){ box(9.5, 0.012, 0.045, M.trim, -0.6, 0.017, z, scene); });
+  box(0.045, 0.012, 11, M.trim, -0.6, 0.017, 5.5, scene);
+  /* sidewalks + curbs, both sides of the street */
+  var walk = new THREE.Mesh(new THREE.PlaneGeometry(90, 1.7), M.pave);
+  walk.rotation.x = -Math.PI/2; walk.position.set(0, 0.008, 15.1); walk.receiveShadow = true; scene.add(walk);
+  box(90, 0.1, 0.28, M.pave, 0, 0.05, 16.05, scene);
+  var walk2 = walk.clone(); walk2.position.z = 23.9; scene.add(walk2);
+  box(90, 0.1, 0.28, M.pave, 0, 0.05, 22.95, scene);
+  /* mailbox at the curb */
+  (function(){
+    var g = new THREE.Group();
+    box(0.09, 1.02, 0.09, M.darkSteel, 0, 0.51, 0, g);
+    box(0.24, 0.2, 0.56, M.darkSteel, 0, 1.06, 0, g);
+    var dome = cyl(0.12, 0.12, 0.56, M.darkSteel, 0, 1.16, 0, g); dome.rotation.x = Math.PI/2;
+    box(0.03, 0.2, 0.05, M.red, 0.14, 1.2, 0.05, g);
+    box(0.03, 0.03, 0.2, M.steel, 0, 1.02, 0.3, g);
+    g.position.set(-6.6, 0, 14.2); g.rotation.y = 0.12;
+    scene.add(g);
+    contactShadow(0.8, 0.8, -6.6, 0.02, 14.2);
+  })();
 
-  /* neighbor houses across the street — simple silhouettes */
+  /* neighbor houses across the street — textured, paneled doors, real driveways */
   function neighbor(x, w, color){
     var g = new THREE.Group();
-    var body = box(w, 3.4, 6, new THREE.MeshStandardMaterial({ color:color, roughness:1 }), 0, 1.7, 0, g);
+    var wallMat = pbrMat("stucco", 2, 1, true, { envMapIntensity:0.45, color:color });
+    box(w, 3.4, 6, wallMat, 0, 1.7, 0, g);
     var roofGeo = new THREE.ConeGeometry(w*0.72, 1.6, 4);
-    var roof = new THREE.Mesh(roofGeo, M.trim);
+    var roof = new THREE.Mesh(roofGeo, M.roofTile);
     roof.position.y = 4.2; roof.rotation.y = Math.PI/4; roof.scale.z = 0.62;
     g.add(roof);
-    box(w*0.34, 2.1, 0.1, M.trim, -w*0.18, 1.05, -3.02, g);
+    box(w + 0.5, 0.09, 0.14, M.trim, 0, 3.42, -3.05, g);
+    /* paneled garage door */
+    box(w*0.36 + 0.12, 2.22, 0.06, M.trim, -w*0.18, 1.11, -3.03, g);
+    box(w*0.36, 2.1, 0.08, M.doorIn, -w*0.18, 1.05, -3.05, g);
+    for (var s=1; s<4; s++) box(w*0.36, 0.025, 0.02, M.trim, -w*0.18, s*0.525, -3.1, g);
+    /* front door + step */
+    box(1.02, 2.12, 0.06, M.trim, w*0.27, 1.06, -3.03, g);
+    box(0.92, 2.02, 0.08, M.redDark, w*0.27, 1.01, -3.05, g);
+    box(1.3, 0.09, 0.5, M.pave, w*0.27, 0.045, -3.25, g);
+    /* windows with frames + glass */
+    [-0.43, 0.40].forEach(function(fx){
+      box(1.16, 1.06, 0.06, M.trim, w*fx, 1.95, -3.03, g);
+      box(1.04, 0.94, 0.08, M.glass, w*fx, 1.95, -3.05, g);
+      box(0.03, 0.94, 0.02, M.trim, w*fx, 1.95, -3.1, g);
+    });
+    /* driveway + front lawn */
+    var nLawn = new THREE.Mesh(new THREE.PlaneGeometry(w + 3, 5.4), M.lawn);
+    nLawn.rotation.x = -Math.PI/2; nLawn.position.set(0, 0.004, -5.7); g.add(nLawn);
+    var nDrive = new THREE.Mesh(new THREE.PlaneGeometry(w*0.38, 5.4), pbrMat("concrete", 2, 3, true, { envMapIntensity:0.35 }));
+    nDrive.rotation.x = -Math.PI/2; nDrive.position.set(-w*0.18, 0.012, -5.7); g.add(nDrive);
+    var nb1 = new THREE.Mesh(blobGeo(0.5, 2, 0.3), M.bush); nb1.position.set(w*0.42, 0.36, -3.4); g.add(nb1);
+    var nb2 = new THREE.Mesh(blobGeo(0.38, 2, 0.3), M.bush); nb2.position.set(-w*0.44, 0.27, -3.4); g.add(nb2);
     g.position.set(x, 0, 27);
     scene.add(g);
     contactShadow(w + 2, 8.5, x, 0.002, 27);
@@ -438,7 +517,7 @@
     g.position.set(x, 0, z);
     scene.add(g);
   }
-  tree(-19, 25, 1.5); tree(-8, 26, 1.9); tree(8.5, 25.5, 1.6); tree(19, 26, 2.0); tree(0.5, 27, 1.3);
+  tree(-19, 25, 1.5); tree(-8, 26, 1.9); tree(8.5, 25.5, 1.6); tree(19, 26, 2.0); tree(6.8, 24.6, 1.3);
   bush(-5.6, 0.9, 0.55); bush(5.6, 0.9, 0.55); bush(-5.7, 2.6, 0.4); bush(5.7, 2.6, 0.42);
   contactShadow(1.5, 1.5, -5.6, 0.02, 0.9); contactShadow(1.5, 1.5, 5.6, 0.02, 0.9);
   contactShadow(1.1, 1.1, -5.7, 0.02, 2.6); contactShadow(1.1, 1.1, 5.7, 0.02, 2.6);
@@ -457,13 +536,20 @@
   box(0.25, 3.3, 9, M.stucco, 5.13, 1.65, -4.5, scene, true);
   /* roof */
   box(11.6, 0.26, 1.3, M.trim, 0, 3.48, 0.2, scene);
-  box(11.6, 0.07, 9.6, M.trim, 0, 3.36, -4.3, scene);
+  box(11.6, 0.07, 9.6, M.roofFlat, 0, 3.36, -4.3, scene);
+  /* gutter + downspout */
+  box(11.6, 0.1, 0.13, M.darkSteel, 0, 3.3, 0.62, scene);
+  cyl(0.035, 0.035, 3.25, M.darkSteel, 5.35, 1.63, 0.62, scene);
   /* wood slat column between the doors */
   for (var slat=0; slat<4; slat++) box(0.11, 2.45, 0.05, M.wood, 1.36 + slat*0.19, 1.225, 0.15, scene);
-  /* sconce lights */
+  /* sconce lights — glowing warm at golden hour */
   [-3.95, 4.62].forEach(function(x){
     box(0.09, 0.22, 0.09, M.trim, x, 2.02, 0.16, scene);
     box(0.07, 0.13, 0.02, M.lamp, x, 2.02, 0.21, scene);
+    var glow = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 0.55),
+      new THREE.MeshBasicMaterial({ map:glowTex, transparent:true, opacity:0.6, blending:THREE.AdditiveBlending, depthWrite:false }));
+    glow.position.set(x, 2.02, 0.24); glow.renderOrder = 3;
+    scene.add(glow);
   });
 
   /* second door — fixed, black with glass strips */
@@ -558,13 +644,18 @@
     [-1.05, 1.05].forEach(function(dx){ [-0.22, 0.22].forEach(function(dz){ box(0.05, 1.9, 0.05, M.shelf, dx, 0.95, dz, g); }); });
     [0.06, 0.68, 1.3, 1.88].forEach(function(y){ box(2.2, 0.04, 0.5, M.shelf, 0, y, 0, g); });
     var bins = [
-      [-0.68, 0.37, M.binGray], [0.05, 0.37, M.binBlue], [0.72, 0.37, M.binGray],
-      [-0.5, 0.99, M.card], [0.45, 0.99, M.binGray],
-      [-0.68, 1.61, M.binBlue], [0.3, 1.61, M.card]
+      [-0.68, 0.37, M.binGray], [0.05, 0.37, M.binBlue], [0.72, 0.37, M.binYel],
+      [-0.5, 0.99, M.cardboard], [0.45, 0.99, M.binGray],
+      [-0.68, 1.61, M.binBlue], [0.3, 1.61, M.cardboard]
     ];
     bins.forEach(function(b){
       box(0.62, 0.34, 0.42, b[2], b[0], b[1], 0, g);
+      box(0.65, 0.05, 0.45, b[2], b[0], b[1]+0.145, 0, g);
       box(0.66, 0.04, 0.46, M.darkSteel, b[0], b[1]+0.19, 0, g);
+      if (b[2] !== M.cardboard){
+        var lab = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.125), M.labelM);
+        lab.position.set(b[0], b[1], 0.215); g.add(lab);
+      }
     });
     g.position.set(cx, 0, -8.68);
     scene.add(g);
@@ -580,7 +671,15 @@
     if (flat) t.rotation.x = Math.PI/2;
     g.add(t);
     var rim = cyl(0.19, 0.19, 0.1, M.rim, 0, 0, 0, g, false);
-    if (!flat) rim.rotation.x = Math.PI/2;
+    if (!flat){
+      rim.rotation.x = Math.PI/2;
+      cyl(0.055, 0.055, 0.13, M.darkSteel, 0, 0, 0, g).rotation.x = Math.PI/2;
+      for (var sp=0; sp<5; sp++){
+        var a = sp/5*Math.PI*2;
+        var spoke = box(0.045, 0.14, 0.03, M.rim, Math.sin(a)*0.1, Math.cos(a)*0.1, 0.045, g);
+        spoke.rotation.z = -a;
+      }
+    }
     g.position.set(x, y, z);
     scene.add(g);
     return g;
@@ -595,11 +694,34 @@
     box(0.7, 0.06, 2.2, M.wood, 0, 0.92, 0, g);
     [[-0.28, -1.0], [0.28, -1.0], [-0.28, 1.0], [0.28, 1.0]].forEach(function(p){ box(0.06, 0.9, 0.06, M.darkSteel, p[0], 0.45, p[1], g); });
     box(0.45, 0.22, 0.6, M.red, 0, 1.06, -0.5, g);
-    box(0.4, 0.3, 0.4, M.card, 0, 1.1, 0.55, g);
+    box(0.03, 0.03, 0.26, M.darkSteel, 0, 1.19, -0.5, g);
+    box(0.02, 0.07, 0.05, M.steel, -0.235, 1.08, -0.66, g);
+    box(0.02, 0.07, 0.05, M.steel, -0.235, 1.08, -0.34, g);
+    box(0.4, 0.3, 0.4, M.cardboard, 0, 1.1, 0.55, g);
+    cyl(0.055, 0.055, 0.11, M.metal, 0.12, 1.0, 0.12, g);
+    cyl(0.057, 0.057, 0.012, M.steel, 0.12, 1.06, 0.12, g);
     g.position.set(4.58, 0, -4.2);
     scene.add(g);
     var peg = box(0.03, 1.1, 2.2, M.card, 4.96, 1.75, -4.2, scene);
-    for (var k=0; k<5; k++) box(0.03, 0.34 - (k%2)*0.1, 0.07, M.darkSteel, 4.93, 1.78, -5.0 + k*0.42, scene);
+    /* tools hanging on the pegboard */
+    box(0.025, 0.3, 0.035, M.wood, 4.92, 1.7, -5.05, scene);
+    box(0.03, 0.07, 0.16, M.steel, 4.92, 1.89, -5.05, scene);
+    box(0.02, 0.26, 0.045, M.steel, 4.92, 1.73, -4.74, scene);
+    cyl(0.035, 0.035, 0.02, M.steel, 4.92, 1.89, -4.74, scene, true);
+    box(0.025, 0.05, 0.5, M.binYel, 4.92, 1.82, -4.32, scene);
+    box(0.012, 0.02, 0.06, M.glass, 4.9, 1.82, -4.44, scene);
+    box(0.012, 0.02, 0.06, M.glass, 4.9, 1.82, -4.2, scene);
+    box(0.015, 0.14, 0.42, M.steel, 4.92, 1.68, -3.88, scene);
+    box(0.03, 0.12, 0.09, M.red, 4.92, 1.72, -4.11, scene);
+    box(0.05, 0.08, 0.2, M.red, 4.92, 1.84, -3.48, scene);
+    box(0.04, 0.14, 0.05, M.darkSteel, 4.92, 1.71, -3.43, scene);
+    /* paint cans on the floor by the bench */
+    [[4.32, -2.72, 0.24, M.redDark], [4.05, -2.5, 0.24, M.binBlue], [4.3, -2.38, 0.17, M.binGray]].forEach(function(cn){
+      cyl(0.11, 0.11, cn[2], M.metal, cn[0], cn[2]/2, cn[1], scene);
+      cyl(0.113, 0.113, cn[2]*0.5, cn[3], cn[0], cn[2]/2, cn[1], scene);
+      cyl(0.112, 0.112, 0.014, M.steel, cn[0], cn[2] + 0.007, cn[1], scene);
+    });
+    contactShadow(1.1, 1.0, 4.25, 0.015, -2.55);
   })();
 
   /* ladder + hose (left wall) */
@@ -613,7 +735,9 @@
     var hose = new THREE.Mesh(new THREE.TorusGeometry(0.27, 0.045, 8, 24), M.hose);
     hose.position.set(-4.94, 1.65, -6.2); hose.rotation.y = Math.PI/2;
     scene.add(hose);
-    box(0.5, 0.35, 0.35, M.card, -4.6, 0.175, -7.6, scene);
+    box(0.55, 0.36, 0.4, M.cardboard, -4.55, 0.18, -7.6, scene);
+    var cb2 = box(0.48, 0.32, 0.36, M.cardboard, -4.55, 0.52, -7.6, scene); cb2.rotation.y = 0.14;
+    var cb3 = box(0.4, 0.28, 0.32, M.cardboard, -4.55, 0.82, -7.6, scene); cb3.rotation.y = -0.09;
     cyl(0.16, 0.13, 0.42, M.binBlue, 4.4, 0.21, -1.6, scene);
   })();
 
