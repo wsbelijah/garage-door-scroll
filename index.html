@@ -159,13 +159,41 @@
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.08;
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.VSMShadowMap;
   document.getElementById("scene").appendChild(renderer.domElement);
 
   var scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xb9c7d1);
-  scene.fog = new THREE.Fog(0xb9c7d1, 30, 85);
+  scene.fog = new THREE.Fog(0xc3ced4, 30, 85);
+
+  /* sky + image-based lighting from a painted equirect canvas */
+  (function(){
+    var c = document.createElement("canvas"); c.width = 1024; c.height = 512;
+    var g = c.getContext("2d");
+    var grad = g.createLinearGradient(0, 0, 0, 512);
+    grad.addColorStop(0, "#6f96b8"); grad.addColorStop(0.42, "#a8c2d4");
+    grad.addColorStop(0.52, "#d9dee0"); grad.addColorStop(0.56, "#9a958a");
+    grad.addColorStop(1, "#7c766b");
+    g.fillStyle = grad; g.fillRect(0, 0, 1024, 512);
+    var sunG = g.createRadialGradient(700, 205, 8, 700, 205, 190);
+    sunG.addColorStop(0, "rgba(255,246,220,0.95)"); sunG.addColorStop(0.12, "rgba(255,238,200,0.55)");
+    sunG.addColorStop(1, "rgba(255,238,200,0)");
+    g.fillStyle = sunG; g.fillRect(0, 0, 1024, 512);
+    g.fillStyle = "rgba(255,255,255,0.16)";
+    for (var i=0; i<26; i++){
+      var cx = Math.random()*1024, cy = 40 + Math.random()*150;
+      g.beginPath(); g.ellipse(cx, cy, 60 + Math.random()*130, 7 + Math.random()*11, 0, 0, Math.PI*2); g.fill();
+    }
+    var skyTex = new THREE.CanvasTexture(c);
+    skyTex.mapping = THREE.EquirectangularReflectionMapping;
+    skyTex.colorSpace = THREE.SRGBColorSpace;
+    scene.background = skyTex;
+    if ("backgroundIntensity" in scene) scene.backgroundIntensity = 0.85;
+    var pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromEquirectangular(skyTex).texture;
+  })();
 
   var camera = new THREE.PerspectiveCamera(68, window.innerWidth/window.innerHeight, 0.1, 200);
   var rig = new THREE.Group(); rig.add(camera); scene.add(rig);
@@ -179,7 +207,8 @@
   sun.shadow.mapSize.set(1024, 1024);
   sun.shadow.camera.left = -14; sun.shadow.camera.right = 14;
   sun.shadow.camera.top = 14; sun.shadow.camera.bottom = -14;
-  sun.shadow.camera.far = 45; sun.shadow.bias = -0.0006;
+  sun.shadow.camera.far = 45; sun.shadow.bias = -0.0002;
+  sun.shadow.radius = 7; sun.shadow.blurSamples = 12;
   scene.add(sun); scene.add(sun.target); sun.target.position.set(0, 0, -2);
   var fill = new THREE.DirectionalLight(0xdfe8f0, 0.38);
   fill.position.set(-4, 6, 14);
@@ -206,48 +235,104 @@
       g.fillRect(Math.random()*s, Math.random()*s, 2, 2);
     }
   }
-  var concreteDrive = canvasTex(512, function(g, s){
-    g.fillStyle = "#a3a099"; g.fillRect(0, 0, s, s); speckle(g, s, 9000, 0.16);
-    g.strokeStyle = "rgba(60,58,52,0.55)"; g.lineWidth = 3; g.strokeRect(0, 0, s, s);
-    g.beginPath(); g.moveTo(256, 0); g.lineTo(256, 512); g.stroke();
-  }, 2, 3);
-  var concreteFloor = canvasTex(512, function(g, s){
-    g.fillStyle = "#98958d"; g.fillRect(0, 0, s, s); speckle(g, s, 9000, 0.16);
-    g.strokeStyle = "rgba(60,58,52,0.5)"; g.lineWidth = 3; g.strokeRect(0, 0, s, s);
-    g.beginPath(); g.moveTo(256, 0); g.lineTo(256, 512); g.stroke();
-  }, 3, 3);
-  var stuccoTex = canvasTex(256, function(g, s){
-    g.fillStyle = "#e9e3d7"; g.fillRect(0, 0, s, s); speckle(g, s, 2600, 0.05);
-  }, 2, 1);
+  function stain(g, s, n, dark){
+    for (var i=0; i<n; i++){
+      var x = Math.random()*s, y = Math.random()*s, r = 30 + Math.random()*90;
+      var rg = g.createRadialGradient(x, y, 2, x, y, r);
+      rg.addColorStop(0, "rgba(52,48,42," + dark + ")"); rg.addColorStop(1, "rgba(52,48,42,0)");
+      g.fillStyle = rg; g.beginPath(); g.arc(x, y, r, 0, Math.PI*2); g.fill();
+    }
+  }
+  function crack(g, s){
+    g.strokeStyle = "rgba(70,66,60,0.35)"; g.lineWidth = 1.2;
+    var x = Math.random()*s, y = Math.random()*s;
+    g.beginPath(); g.moveTo(x, y);
+    for (var i=0; i<6; i++){ x += (Math.random()-0.5)*90; y += Math.random()*46; g.lineTo(x, y); }
+    g.stroke();
+  }
+  function concreteDraw(base){
+    return function(g, s){
+      g.fillStyle = base; g.fillRect(0, 0, s, s); speckle(g, s, 9000, 0.16);
+      stain(g, s, 7, 0.10); crack(g, s); crack(g, s);
+      g.strokeStyle = "rgba(60,58,52,0.55)"; g.lineWidth = 3; g.strokeRect(0, 0, s, s);
+      g.beginPath(); g.moveTo(256, 0); g.lineTo(256, 512); g.stroke();
+    };
+  }
+  var concreteDrive = canvasTex(512, concreteDraw("#a3a099"), 2, 3);
+  var concreteFloor = canvasTex(512, concreteDraw("#98958d"), 3, 3);
+  var concreteBump = canvasTex(512, concreteDraw("#808080"), 3, 3);
+  function stuccoDraw(g, s){
+    g.fillStyle = "#e9e3d7"; g.fillRect(0, 0, s, s); speckle(g, s, 2600, 0.05); stain(g, s, 3, 0.04);
+  }
+  var stuccoTex = canvasTex(256, stuccoDraw, 2, 1);
+  var stuccoBump = canvasTex(256, stuccoDraw, 2, 1);
+  var woodTex = canvasTex(256, function(g, s){
+    g.fillStyle = "#9a6a44"; g.fillRect(0, 0, s, s);
+    for (var i=0; i<46; i++){
+      var y = Math.random()*s;
+      g.strokeStyle = "rgba(70,44,24," + (0.10 + Math.random()*0.22) + ")";
+      g.lineWidth = 0.8 + Math.random()*1.8;
+      g.beginPath(); g.moveTo(0, y);
+      for (var x=0; x<=s; x += 32) g.lineTo(x, y + Math.sin(x*0.05 + i)*2.2);
+      g.stroke();
+    }
+    speckle(g, s, 700, 0.05);
+  }, 1, 1);
+  var dryTex = canvasTex(256, function(g, s){
+    g.fillStyle = "#d9d6d0"; g.fillRect(0, 0, s, s); speckle(g, s, 2000, 0.04); stain(g, s, 2, 0.03);
+  }, 3, 1);
+  var tireBump = canvasTex(128, function(g, s){
+    g.fillStyle = "#808080"; g.fillRect(0, 0, s, s);
+    g.fillStyle = "#3a3a3a";
+    for (var x=0; x<s; x += 16) g.fillRect(x, 0, 6, s);
+  }, 20, 2);
   var ceilTex = canvasTex(512, function(g, s){
     g.fillStyle = "#d8d4cc"; g.fillRect(0, 0, s, s); speckle(g, s, 5000, 0.13);
     g.strokeStyle = "rgba(90,86,78,0.4)"; g.lineWidth = 3; g.strokeRect(0, 0, s, s);
   }, 5, 5);
+  var contactTex = (function(){
+    var c = document.createElement("canvas"); c.width = c.height = 256;
+    var g = c.getContext("2d");
+    var rg = g.createRadialGradient(128, 128, 10, 128, 128, 126);
+    rg.addColorStop(0, "rgba(20,17,13,0.5)"); rg.addColorStop(0.7, "rgba(20,17,13,0.28)");
+    rg.addColorStop(1, "rgba(20,17,13,0)");
+    g.fillStyle = rg; g.fillRect(0, 0, 256, 256);
+    var t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  })();
+  function contactShadow(w, d, x, y, z){
+    var m = new THREE.Mesh(
+      new THREE.PlaneGeometry(w, d),
+      new THREE.MeshBasicMaterial({ map:contactTex, transparent:true, depthWrite:false })
+    );
+    m.rotation.x = -Math.PI/2; m.position.set(x, y, z); m.renderOrder = 1;
+    scene.add(m);
+  }
 
   /* ---------- materials ---------- */
   var M = {
-    stucco:  new THREE.MeshStandardMaterial({ map:stuccoTex, roughness:0.95 }),
-    trim:    new THREE.MeshStandardMaterial({ color:0x2e2c2a, roughness:0.8 }),
-    doorBlk: new THREE.MeshStandardMaterial({ color:0x1d1f22, roughness:0.5, metalness:0.2 }),
-    doorIn:  new THREE.MeshStandardMaterial({ color:0x26282c, roughness:0.6, metalness:0.15 }),
-    glass:   new THREE.MeshStandardMaterial({ color:0xaebfd0, roughness:0.15, metalness:0.1, emissive:0x5d748e, emissiveIntensity:0.35 }),
-    wood:    new THREE.MeshStandardMaterial({ color:0x9a6a44, roughness:0.8 }),
-    drywall: new THREE.MeshStandardMaterial({ color:0xd9d6d0, roughness:1 }),
-    steel:   new THREE.MeshStandardMaterial({ color:0x9aa0a4, roughness:0.35, metalness:0.7 }),
-    darkSteel:new THREE.MeshStandardMaterial({ color:0x3c3f42, roughness:0.45, metalness:0.6 }),
-    shelf:   new THREE.MeshStandardMaterial({ color:0x6f7478, roughness:0.4, metalness:0.6 }),
-    binGray: new THREE.MeshStandardMaterial({ color:0x7c8287, roughness:0.7 }),
-    binBlue: new THREE.MeshStandardMaterial({ color:0x33566e, roughness:0.7 }),
-    card:    new THREE.MeshStandardMaterial({ color:0xb08d5f, roughness:0.9 }),
-    tire:    new THREE.MeshStandardMaterial({ color:0x1b1b1d, roughness:0.9 }),
-    rim:     new THREE.MeshStandardMaterial({ color:0xb9bdc2, roughness:0.35, metalness:0.8 }),
-    red:     new THREE.MeshStandardMaterial({ color:0xa52a21, roughness:0.5 }),
-    redDark: new THREE.MeshStandardMaterial({ color:0x6e1a14, roughness:0.6 }),
+    stucco:  new THREE.MeshStandardMaterial({ map:stuccoTex, bumpMap:stuccoBump, bumpScale:0.6, roughness:0.95, envMapIntensity:0.5 }),
+    trim:    new THREE.MeshStandardMaterial({ color:0x2e2c2a, roughness:0.75, envMapIntensity:0.5 }),
+    doorBlk: new THREE.MeshPhysicalMaterial({ color:0x1d1f22, roughness:0.38, metalness:0.25, clearcoat:0.65, clearcoatRoughness:0.28, envMapIntensity:0.9 }),
+    doorIn:  new THREE.MeshStandardMaterial({ color:0x26282c, roughness:0.6, metalness:0.15, envMapIntensity:0.5 }),
+    glass:   new THREE.MeshStandardMaterial({ color:0x9fb4c6, roughness:0.1, metalness:0.85, emissive:0x5d748e, emissiveIntensity:0.15, envMapIntensity:1.3 }),
+    wood:    new THREE.MeshStandardMaterial({ map:woodTex, bumpMap:woodTex, bumpScale:0.3, roughness:0.8, envMapIntensity:0.45 }),
+    drywall: new THREE.MeshStandardMaterial({ map:dryTex, roughness:1, envMapIntensity:0.4 }),
+    steel:   new THREE.MeshStandardMaterial({ color:0x9aa0a4, roughness:0.32, metalness:0.75, envMapIntensity:0.9 }),
+    darkSteel:new THREE.MeshStandardMaterial({ color:0x3c3f42, roughness:0.42, metalness:0.65, envMapIntensity:0.7 }),
+    shelf:   new THREE.MeshStandardMaterial({ color:0x6f7478, roughness:0.42, metalness:0.7, envMapIntensity:0.7 }),
+    binGray: new THREE.MeshStandardMaterial({ color:0x7c8287, roughness:0.65, envMapIntensity:0.5 }),
+    binBlue: new THREE.MeshStandardMaterial({ color:0x33566e, roughness:0.65, envMapIntensity:0.5 }),
+    card:    new THREE.MeshStandardMaterial({ color:0xb08d5f, roughness:0.9, envMapIntensity:0.4 }),
+    tire:    new THREE.MeshStandardMaterial({ color:0x1b1b1d, roughness:0.92, bumpMap:tireBump, bumpScale:0.5, envMapIntensity:0.35 }),
+    rim:     new THREE.MeshStandardMaterial({ color:0xb9bdc2, roughness:0.3, metalness:0.85, envMapIntensity:1.0 }),
+    red:     new THREE.MeshPhysicalMaterial({ color:0xa52a21, roughness:0.42, clearcoat:0.4, clearcoatRoughness:0.35, envMapIntensity:0.7 }),
+    redDark: new THREE.MeshStandardMaterial({ color:0x6e1a14, roughness:0.6, envMapIntensity:0.5 }),
     lamp:    new THREE.MeshStandardMaterial({ color:0xffca7a, emissive:0xffb85c, emissiveIntensity:1.6 }),
     led:     new THREE.MeshStandardMaterial({ color:0xffffff, emissive:0xfff6e0, emissiveIntensity:1.2 }),
-    lawn:    new THREE.MeshStandardMaterial({ color:0x6d7a52, roughness:1 }),
-    asphalt: new THREE.MeshStandardMaterial({ color:0x4a4a4c, roughness:1 }),
-    hose:    new THREE.MeshStandardMaterial({ color:0x3f5a3a, roughness:0.8 })
+    lawn:    new THREE.MeshStandardMaterial({ color:0x6d7a52, roughness:1, envMapIntensity:0.35 }),
+    asphalt: new THREE.MeshStandardMaterial({ color:0x4a4a4c, roughness:1, envMapIntensity:0.35 }),
+    hose:    new THREE.MeshStandardMaterial({ color:0x3f5a3a, roughness:0.8, envMapIntensity:0.4 })
   };
 
   function box(w, h, d, mat, x, y, z, parent, cast, recv){
@@ -276,7 +361,7 @@
   scene.add(street);
   for (var dash=0; dash<9; dash++) box(2.2, 0.012, 0.18, M.drywall, -32 + dash*8, 0.006, 19.5, scene);
 
-  var slab = new THREE.Mesh(new THREE.PlaneGeometry(9.5, 11), new THREE.MeshStandardMaterial({ map:concreteDrive, roughness:1 }));
+  var slab = new THREE.Mesh(new THREE.PlaneGeometry(9.5, 11), new THREE.MeshStandardMaterial({ map:concreteDrive, bumpMap:concreteBump, bumpScale:0.4, roughness:1, envMapIntensity:0.4 }));
   slab.rotation.x = -Math.PI/2; slab.position.set(-0.6, 0.01, 5.5); slab.receiveShadow = true;
   scene.add(slab);
   var lawnL = new THREE.Mesh(new THREE.PlaneGeometry(7, 11), M.lawn);
@@ -304,6 +389,8 @@
     scene.add(b);
   }
   bush(-5.6, 0.9, 0.55); bush(5.6, 0.9, 0.55); bush(-5.7, 2.6, 0.4); bush(5.7, 2.6, 0.42);
+  contactShadow(1.5, 1.5, -5.6, 0.02, 0.9); contactShadow(1.5, 1.5, 5.6, 0.02, 0.9);
+  contactShadow(1.1, 1.1, -5.7, 0.02, 2.6); contactShadow(1.1, 1.1, 5.7, 0.02, 2.6);
 
   /* ---------- the house front ---------- */
   var OPEN = { x0:-3.6, x1:1.2, h:2.45 };           /* main door opening */
@@ -372,11 +459,11 @@
   layoutDoor(0);
 
   /* ---------- garage interior (modeled room) ---------- */
-  var floor = new THREE.Mesh(new THREE.PlaneGeometry(10, 9), new THREE.MeshStandardMaterial({ map:concreteFloor, roughness:1 }));
+  var floor = new THREE.Mesh(new THREE.PlaneGeometry(10, 9), new THREE.MeshStandardMaterial({ map:concreteFloor, bumpMap:concreteBump, bumpScale:0.4, roughness:1, envMapIntensity:0.4 }));
   floor.rotation.x = -Math.PI/2; floor.position.set(0, 0.005, -4.5); floor.receiveShadow = true;
   scene.add(floor);
 
-  var ceil = new THREE.Mesh(new THREE.PlaneGeometry(10, 9), new THREE.MeshBasicMaterial({ map:ceilTex }));
+  var ceil = new THREE.Mesh(new THREE.PlaneGeometry(10, 9), new THREE.MeshStandardMaterial({ map:ceilTex, roughness:1, envMapIntensity:0.35 }));
   ceil.rotation.x = Math.PI/2; ceil.position.set(0, 3.3, -4.5);
   scene.add(ceil);
   box(10, 0.18, 0.24, M.wood, 0, 3.2, -2.5, scene);
@@ -424,6 +511,8 @@
     scene.add(g);
   }
   shelfUnit(-3.3); shelfUnit(-0.8);
+  contactShadow(2.7, 1.0, -3.3, 0.015, -8.6); contactShadow(2.7, 1.0, -0.8, 0.015, -8.6);
+  contactShadow(1.2, 1.2, 3.3, 0.015, -8.45); contactShadow(1.0, 2.6, 4.55, 0.015, -4.2);
 
   /* tire stack + leaners */
   function tire(x, y, z, flat){
@@ -480,6 +569,21 @@
   var arm = box(0.04, 0.03, 0.75, M.steel, -1.2, 2.94, -0.32, machine);
   arm.rotation.x = 0.42;
   [-1.45, -0.95].forEach(function(x){ box(0.04, 0.35, 0.04, M.steel, x, 3.12, -3.3, machine); });
+  /* pull cord + warning label + wall button + outlets — the small stuff that sells it */
+  cyl(0.006, 0.006, 0.5, M.darkSteel, -0.82, 2.45, -3.3, machine);
+  box(0.05, 0.1, 0.025, M.red, -0.82, 2.16, -3.3, machine);
+  var warn = new THREE.Mesh(new THREE.PlaneGeometry(0.13, 0.1), new THREE.MeshStandardMaterial({ color:0xe8c33a, roughness:0.7 }));
+  warn.position.set(-0.885, 2.95, -3.3); warn.rotation.y = Math.PI/2; machine.add(warn);
+  box(0.12, 0.18, 0.03, M.drywall, 1.45, 1.35, -0.16, scene);
+  box(0.05, 0.05, 0.015, M.darkSteel, 1.45, 1.38, -0.18, scene);
+  box(0.12, 0.08, 0.02, M.trim, -2.2, 0.28, -8.97, scene);
+  box(0.12, 0.08, 0.02, M.trim, 2.4, 0.28, -8.97, scene);
+
+  /* warm light patch that spills in as the door opens */
+  var spillMat = new THREE.MeshBasicMaterial({ color:0xffe2b0, transparent:true, opacity:0, depthWrite:false });
+  var spill = new THREE.Mesh(new THREE.PlaneGeometry(4.8, 3.4), spillMat);
+  spill.rotation.x = -Math.PI/2; spill.position.set(-1.2, 0.016, -1.55); spill.renderOrder = 2;
+  scene.add(spill);
 
   var shaft = cyl(0.025, 0.025, 4.6, M.steel, -1.2, 2.68, -0.38, machine, true);
   function spring(cx, len){
@@ -707,6 +811,7 @@
     var t = clock.getElapsedTime();
     var s = 0.42*(1 + Math.sin(t*2.4)*0.07);
     hotspot.scale.set(s, s, 1);
+    spillMat.opacity = doorT*0.3;
     hotspot.material.opacity = state === "machine" ? 0.25 : 0.95;
     if (renderer.xr.isPresenting){
       rig.position.set(0, 0, 0);
